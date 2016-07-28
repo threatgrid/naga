@@ -1,2 +1,2 @@
 # naga
-Catalog based rules engine
+Datalog based rules engine
