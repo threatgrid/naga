@@ -43,15 +43,14 @@
    {:id 5 :s 3 :data (atom 1)}
    {:id 6 :s 2 :data (atom 1)}])
 
-(defn updater [e]
-  (println "Got: " e)
-  #_(update-in e [:data] swap! inc)
-  (let [e (update-in e [:data] swap! inc)]
-    (println "Returning: " e)
-    e))
+(defn updater
+  "Updates the :data atom in the element with an increment and returns the element"
+  [e]
+  (update-in e [:data] swap! inc)
+  e)
 
 (deftest updates
-  (let [queue (reduce q/add (q/new-queue :s :id identity) update-data)
+  (let [queue (reduce q/add (q/new-queue :s :id updater) update-data)
         df (comp deref :data)]
     (is (= [1 1 1 1 1 1] (map df (q/drain queue))))
     (let [q2 (-> queue (q/add {:id 3}) (q/add {:id 5}))]
