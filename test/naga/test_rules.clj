@@ -25,7 +25,7 @@
   (= (set a) (set b)))
 
 (deftest build-program
-  (let [program (r/create-program rules)]
+  (let [{program :rules} (r/create-program rules [])]
      (println "PROGRAM:")
      (pprint program)
     (is (= (count rules) (count program)))

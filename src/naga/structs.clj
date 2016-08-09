@@ -1,6 +1,7 @@
 (ns naga.structs
   "Defines the schemas for rule structures"
-  (:require [schema.core :as s])
+  (:require [schema.core :as s]
+            [naga.util :as u])
   (:import [clojure.lang Symbol]))
 
 ;; single element in a rule
@@ -34,10 +35,33 @@
     [head :- EPVPattern
      body :- Body
      name :- s/Str
-     downstream :- [RulePatternPair]])
+     salience :- s/Num
+     downstream :- [RulePatternPair]
+     dirty :- {EPVPattern (s/atom s/Bool)}
+     execution_count :- s/Num])
 
 (defn new-rule
   ([head body name]
    (new-rule head body name []))
   ([head body name downstream]
-   (->Rule head body name downstream)))
+   (new-rule head body name downstream 0))
+  ([head body name downstream salience]
+   (->Rule head body name salience downstream
+           (u/mapmap (fn [_] (atom false)) body) 0)))
+
+(def EntityPropAxiomElt
+  (s/cond-pre s/Keyword Long))
+
+(def EntityPropValAxiomElt
+  (s/conditional (complement symbol?) s/Any))
+
+(def Axiom
+  [(s/one EntityPropAxiomElt "entity")
+   (s/one EntityPropAxiomElt "property")
+   (s/one EntityPropValAxiomElt "value")])
+
+(def Statement (s/cond-pre Axiom Rule))
+
+(def Program
+  {(s/required-key :rules) {s/Str Rule}
+   (s/required-key :axioms) [Axiom]})

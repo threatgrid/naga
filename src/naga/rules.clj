@@ -1,7 +1,7 @@
 (ns naga.rules
   "Defines rule structures and constructors to keep them consistent"
   (:require [schema.core :as s]
-            [naga.structs :as st :refer [EPVPattern RulePatternPair Body]]
+            [naga.structs :as st :refer [EPVPattern RulePatternPair Body Axiom Program]]
             [naga.util :as u])
   (:import [clojure.lang Symbol]
            [naga.structs Rule]))
@@ -20,8 +20,8 @@
 (s/defn named-rule :- Rule
   "Creates a rule the same as an existing rule, with a different name."
   [name :- Rule
-   {:keys [head body downstream]} :- s/Str]
-  (st/new-rule head body name downstream))
+   {:keys [head body salience downstream]} :- s/Str]
+  (st/new-rule head body name downstream salience))
 
 (defn- de-ns
   "Remove namespaces from symbols in a pattern"
@@ -71,44 +71,18 @@
             (if (match? a b) [nm b]))]
     (keep matches? sb)))
 
-(def ^:private new-state {:symbol-map {} :cntr 0})
-
-(defn- skolemize-symbol
-  "Used by skolemize to find or create a new symbol to replace any var symbols.
-   element - an element that may contain a symbol. If so, it will be replaced.
-   state - keeps track of symbols replacements.
-   result: the element, or its replacement, and the new state after replacement."
-  [element {:keys [symbol-map cntr] :as state}]
-  (if (and (symbol? element) (= \? (first (name element))))
-    (if-let [mapped-symbol (symbol-map element)]
-      [mapped-symbol state]
-      (let [mapped-symbol (symbol (str "?v" cntr))]
-        [mapped-symbol {:symbol-map (assoc symbol-map element mapped-symbol)
-                        :cntr (inc cntr)}]))
-    [element state]))
-  
-(s/defn skolemize* :- EPVPattern
-  "Skolemize a pattern to use consistent naming"
-  [pattern :- EPVPattern]
-  (->> pattern
-       (reduce (fn [[result-pattern state] elt]
-                 (let [[skol-sym new-state] (skolemize-symbol elt state)]
-                   [(conj result-pattern skol-sym) new-state]))
-               [[] new-state])
-       first))
-
-(def skolemize (memoize skolemize*))
-
 (defn dbg [x] (println x) x)
 
-(s/defn create-program :- {s/Str Rule}
+(s/defn create-program :- Program
   "Converts a sequence of rules into a program.
    A program consists of a map of rule names to rules, where the rules have dependencies."
-  [rules :- [Rule]]
+  [rules :- [Rule]
+   axioms :- [Axiom]]
   (let [name-bodies (u/mapmap :name :body rules)
         triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
         deps (fn [{:keys [head body name]}]
                (st/new-rule head body name (triggers head)))]
-    (u/mapmap :name (map deps rules))))
+    {:rules (u/mapmap :name identity (map deps rules))
+     :axioms axioms}))
 
 
