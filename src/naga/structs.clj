@@ -28,6 +28,10 @@
 
 (def Body [EPVPattern])
 
+(def ConstraintData
+  {:last-count s/Num  ;; The count from the previous execution
+   :dirty s/Bool})    ;; If the constraint resolution is dirty
+
 ;; Rules defined by a horn clause. The head is a simple pattern,
 ;; the body is conjunction of pattern matches.
 ;; All rules have a name, and a list of names of downstream rules.
@@ -37,8 +41,8 @@
      name :- s/Str
      salience :- s/Num
      downstream :- [RulePatternPair]
-     dirty :- {EPVPattern (s/atom s/Bool)}
-     execution_count :- s/Num])
+     status :- {EPVPattern (s/atom ConstraintData)}
+     execution-count :- (s/atom s/Num)])
 
 (defn new-rule
   ([head body name]
@@ -47,7 +51,11 @@
    (new-rule head body name downstream 0))
   ([head body name downstream salience]
    (->Rule head body name salience downstream
-           (u/mapmap (fn [_] (atom false)) body) 0)))
+           (u/mapmap (fn [_]
+                       (atom {:last-count 0
+                              :dirty true}))
+                     body)
+           (atom 0))))
 
 (def EntityPropAxiomElt
   (s/cond-pre s/Keyword Long))

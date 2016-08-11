@@ -1,5 +1,6 @@
 (ns naga.test-rules
   (:require [naga.rules :as r :refer [r]]
+            [naga.engine :as e]
             [schema.test :as st]
             [clojure.test :refer :all]
             [clojure.pprint :refer [pprint]]))
@@ -26,8 +27,8 @@
 
 (deftest build-program
   (let [{program :rules} (r/create-program rules [])]
-     (println "PROGRAM:")
-     (pprint program)
+    (println "PROGRAM:")
+    (pprint program)
     (is (= (count rules) (count program)))
     (is (unord= (map first (get-in program ["shared-parent" :downstream]))
                 ["shared-parent" "uncle"]))
