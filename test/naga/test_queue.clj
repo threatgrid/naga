@@ -59,5 +59,7 @@
       (is (= [4 1 2 3 6 5] (map :id (q/drain q2))))
       (is (= [1 1 1 2 1 2] (map df (q/drain q2))))
       (let [q3 (-> q2 (adder {:id 3}) (adder {:id 1}))]
-      (is (= [4 1 2 3 6 5] (map :id (q/drain q3))))
-      (is (= [1 2 1 3 1 2] (map df (q/drain q3))))))))
+        (is (= [4 1 2 3 6 5] (map :id (q/drain q3))))
+        (is (= [1 2 1 3 1 2] (map df (q/drain q3))))
+        (let [q4 (-> q3 q/pop q/pop q/pop (adder {:id 4}) (adder {:id 1}) (adder {:id 2}))]
+          (is (= [3 6 5 4 1 2] (map :id (q/drain q4)))))))))

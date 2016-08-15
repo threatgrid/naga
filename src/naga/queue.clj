@@ -15,7 +15,7 @@
   [s :- [s/Any]
    salience :- (=> s/Num s/Any)          ;; element -> number
    e :- s/Any]
-  (let [preamble (if salience
+  (let [preamble (if (and salience (salience e))
                    (take-while #(>= (salience e) (salience %)) s)
                    s)]
     (concat preamble
@@ -31,7 +31,7 @@
   PQueue
   (q-count [_] (count q))
   (head [_] (first q))
-  (pop [_] (->SalienceQueue (rest q) (remove (first q) h) id-fn salience-fn))
+  (pop [_] (->SalienceQueue (rest q) (disj h (id-fn (first q))) id-fn salience-fn))
   (add [e element] (add e identity element))
   (add
     [_ update-fn element]

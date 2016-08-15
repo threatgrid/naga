@@ -1,5 +1,6 @@
 (ns naga.store
-  "Storage API for talking to external storage")
+  "Storage API for talking to external storage"
+  (:refer-clojure :exclude [resolve]))
 
 (defprotocol Storage
   (resolve [store pattern] "Resolves a pattern against storage")

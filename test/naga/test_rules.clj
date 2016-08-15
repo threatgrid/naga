@@ -1,6 +1,8 @@
 (ns naga.test-rules
   (:require [naga.rules :as r :refer [r]]
+            [naga.structs :as structs :refer [new-rule]]
             [naga.engine :as e]
+            [naga.storage.test :as stest]
             [schema.test :as st]
             [clojure.test :refer :all]
             [clojure.pprint :refer [pprint]]))
@@ -27,8 +29,8 @@
 
 (deftest build-program
   (let [{program :rules} (r/create-program rules [])]
-    (println "PROGRAM:")
-    (pprint program)
+    ; (println "PROGRAM:")
+    ; (pprint program)
     (is (= (count rules) (count program)))
     (is (unord= (map first (get-in program ["shared-parent" :downstream]))
                 ["shared-parent" "uncle"]))
@@ -40,3 +42,15 @@
                 ["sibling->brother"]))
     (is (unord= (map first (get-in program ["parent-father" :downstream]))
                 ["shared-parent" "uncle"]))))
+
+
+(deftest single-rule
+  (let [ptn '[?a :ancestor ?b]
+        r1 (new-rule '[?a :parent ?b] [ptn] "stub1" [])
+        r2 (new-rule '[?a :parent ?b] [ptn] "stub2" [["stub2" ptn]])
+        p1 {:rules {"stub1" r1} :axioms []}
+        p2 {:rules {"stub2" r2} :axioms []}]
+    (e/execute (:rules p1) stest/empty-store)
+    (is (= 1 @(:execution-count r1)))
+    (e/execute (:rules p2) stest/empty-store)
+    (is (= 4 @(:execution-count r2)))))
