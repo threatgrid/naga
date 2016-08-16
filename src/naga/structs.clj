@@ -21,7 +21,9 @@
 
 ;; The full pattern definition, with 1, 2 or 3 elements
 (def EPVPattern
-  (s/if #(= 1 (count %)) EntityPattern EntityPropertyPattern))
+  (s/if #(= 1 (count %))
+    EntityPattern
+    EntityPropertyPattern))
 
 (def RulePatternPair [(s/one s/Str "rule-name")
                       (s/one EPVPattern "pattern")])
