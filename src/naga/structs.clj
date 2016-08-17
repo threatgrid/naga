@@ -34,6 +34,13 @@
   {:last-count s/Num  ;; The count from the previous execution
    :dirty s/Bool})    ;; If the constraint resolution is dirty
 
+(def StatusMap {EPVPattern (s/atom ConstraintData)})
+
+(def StatusMapEntry
+  "Convenience for representing a single key/value pair in a StatusMap"
+  [(s/one EPVPattern "Pattern from rule body")
+   (s/one (s/atom ConstraintData) "count_and_dirty")])
+
 ;; Rules defined by a horn clause. The head is a simple pattern,
 ;; the body is conjunction of pattern matches.
 ;; All rules have a name, and a list of names of downstream rules.
