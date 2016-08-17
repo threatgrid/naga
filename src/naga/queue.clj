@@ -34,11 +34,13 @@
   (pop [_] (->SalienceQueue (rest q) (disj h (id-fn (first q))) id-fn salience-fn))
   (add [e element] (add e identity element))
   (add
-    [_ update-fn element]
-    (let [id (id-fn element)
-          updater-fn (fn [e] (if (= id (id-fn e)) (update-fn e) e))]
+    [this update-fn element]
+    (let [id (id-fn element)]
       (if (h id) ;; TODO: can salience be updated on the fly?
-        (->SalienceQueue (map updater-fn q) h id-fn salience-fn)
+        (if (= identity update-fn)
+          this  ;; shortcut to avoid redundant work when using identity
+          (let [updater-fn (fn [e] (if (= id (id-fn e)) (update-fn e) e))]
+            (->SalienceQueue (map updater-fn q) h id-fn salience-fn)))
         (->SalienceQueue (insert-by q salience-fn element)
                          (conj h id)
                          id-fn
