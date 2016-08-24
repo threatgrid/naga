@@ -32,10 +32,10 @@
 (defmulti index-get "Lookup an index in the graph for the requested data" simplify)
 
 (defmethod index-get [:v :v :v] [{idx :spo} s p o] (let [os (get-in idx [s p])] (if (get os o) [[]] [])))
-(defmethod index-get [:v :v  ?] [{idx :spo} s p o] (for [o (get-in idx [s p])] [o]))
-(defmethod index-get [:v  ? :v] [{idx :osp} s p o] (for [p (get-in idx [o s])] [p]))
+(defmethod index-get [:v :v  ?] [{idx :spo} s p o] (map vector (get-in idx [s p])))
+(defmethod index-get [:v  ? :v] [{idx :osp} s p o] (map vector (get-in idx [o s])))
 (defmethod index-get [:v  ?  ?] [{idx :spo} s p o] (let [edx (idx s)] (for [p (keys edx) o (edx p)] [p o])))
-(defmethod index-get [ ? :v :v] [{idx :pos} s p o] (for [s (get-in idx [p o])] [s]))
+(defmethod index-get [ ? :v :v] [{idx :pos} s p o] (map vector (get-in idx [p o])))
 (defmethod index-get [ ? :v  ?] [{idx :pos} s p o] (let [edx (idx p)] (for [o (keys edx) s (edx o)] [s o])))
 (defmethod index-get [ ?  ? :v] [{idx :osp} s p o] (let [edx (idx o)] (for [s (keys edx) p (edx s)] [s p])))
 (defmethod index-get [ ?  ?  ?] [{idx :spo} s p o] (for [s (keys idx) p (keys (idx s)) o ((idx s) p)] [s p o]))
@@ -43,7 +43,7 @@
 (defprotocol Graph
   (graph-add [this subj pred obj] "Adds triples to the graph")
   (graph-delete [this subj pred obj] "Removes triples from the graph")
-  (resolve-pattern [this subj pred obj] "Resolves patterns from the graph, and returns unbound columns only"))
+  (resolve-triple [this subj pred obj] "Resolves patterns from the graph, and returns unbound columns only"))
 
 (defrecord GraphIndexed [spo pos osp]
   Graph
@@ -58,7 +58,12 @@
     (if-let [idx (index-delete spo subj pred obj)]
       (assoc this :spo idx :pos (index-delete pos pred obj subj) :osp (index-delete osp obj subj pred))
       this))
-  (resolve-pattern [this subj pred obj]
+  (resolve-triple [this subj pred obj]
     (index-get this subj pred obj)))
 
-(def empty (GraphIndexed. {} {} {}))
+(defn resolve-pattern
+  "Convenience function to extract elements out of a pattern to query for it"
+  [graph [s p o :as pattern]]
+  (resolve-triple graph s p o))
+
+(def empty-graph (GraphIndexed. {} {} {}))

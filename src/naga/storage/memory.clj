@@ -1,9 +1,11 @@
 (ns naga.storage.memory
   (:require [clojure.set :as set]
             [schema.core :as s]
-            [naga.structs :as st :refer [EPVPattern]]
+            [naga.structs :as st :refer [EPVPattern Results]]
             [naga.store :as store]
-            [naga.util :as u])
+            [naga.util :as u]
+            [naga.storage.memory-index :as mem]
+            )
   (:import [clojure.lang Symbol]
            [naga.store Storage]))
 
@@ -75,68 +77,99 @@
       :min min-join-path
       min-join-path)))
 
-(s/defn resolve
-  [{:graph store} [s p o g]]
-  (memory/resolve-pattern graph pattern))
+(s/defn matching-vars :- {s/Num s/Num}
+  "Returns pairs of indexes into seqs where the vars match"
+  [from :- [Symbol]
+   to :- [s/Any]]
+  (->> to
+       (keep-indexed
+        (fn [nt vt]
+          (seq
+           (keep-indexed
+            (fn [nf vf]
+              (if (and (vartest? vf) (= vt vf))
+                [nf nt]))
+            from))))
+       (apply concat)
+       (into {})))
 
-(s/defn keep-indexed :- [s/Any]
-  [f :- (=> s/Any [s/Num s/Any])
-   coll :- [s/Any]]
-  (->> (map-indexed f coll)
-       (remove nil?)))
+(s/defn modify-pattern :- EPVPattern
+  "Creates a new EPVPattern from an existing one, based on existing bindings."
+  [existing :- [Symbol]
+   mapping :- {s/Num s/Num}
+   pattern :- EPVPattern]
+  (map-indexed (fn [n v]
+                 (if-let [x (mapping n)]
+                   (nth existing x)
+                   v))
+               pattern))
 
-(s/defn left-join :- [[s/Any]]
+(s/defn left-join :- Results
   "Takes a partial result, and joins on the resolution of a pattern"
-  [store :- Storage
-   part :- [[s/Any]]
+  [graph :- mem/Graph
+   part :- Results
    pattern :- EPVPattern]
   (let [cols (:cols (meta part))
-        pattern-cols (bindings pattern)
-        new-cols (into [] (concat cols pattern-cols))
-        ;; identify lookup columns by intersecting names
-        pattern->left (apply concat
-                             (keep-indexed
-                              (fn [nr vr]
-                                (if (vartest? vr)
-                                  (keep-indexed
-                                   (fn [nl vl] (if (= vl vr) [nr nl]))
-                                   cols)))
-                              pattern))]
+        new-cols (into [] (concat cols (bindings pattern)))
+        pattern->left (matching-vars pattern cols)]
     ;; iterate over part, lookup pattern
     (with-meta
       (for [lrow part
-            :let [lookup (map-indexed (fn [n v]
-                                        (if-let [x (pattern->left n)]
-                                          (nth lrow x)
-                                          v))
-                                      pattern)]
-            rrow (resolve-pattern store lookup)]
+            :let [lookup (modify-pattern lrow pattern->left pattern)]
+            rrow (mem/resolve-pattern graph lookup)]
         (concat lrow rrow))
       {:cols new-cols})))
 
-(s/defn join :- [[s/Any] & options]
+(s/defn join-patterns :- Results
   "Joins the resolutions for a series of patterns into a single result."
-  [store :- Storage
-   patterns :- [EPVPattern]]
-  (let [
-        resolution-map (u/mapmap (fn [p]
+  [graph :- mem/Graph
+   patterns :- [EPVPattern]
+   & options]
+  (let [resolution-map (u/mapmap (fn [p]
                                    (if-let [{r :resolution} (meta p)]
                                      r
-                                     (resolve-pattern store p)))
+                                     (mem/resolve-pattern graph p)))
                                  patterns)
 
         count-map (u/mapmap (comp count resolution-map) patterns)
 
-        query-planner (select-planner opt)
+        query-planner (select-planner options)
 
         ;; run the query planner
         [fpath & rpath] (query-planner patterns count-map)
 
         ;; execute the plan by joining left-to-right
-        ljoin (partial left-join store)
+        ljoin (partial left-join graph)
 
         part-result (with-meta
                       (resolution-map fpath)
                       {:cols fpath})]
 
-    (reduce ljoin part-result (rest path))))
+    (reduce ljoin part-result rpath)))
+
+
+(s/defn project :- Results
+  [pattern :- [s/Any]
+   data :- Results]
+  (let [pattern->data (matching-vars pattern data)]
+    (map #(modify-pattern % pattern->data pattern) data)))
+
+(s/defn add-to-graph
+  [graph :- mem/Graph
+   data :- Results]
+  (reduce (partial apply mem/graph-add) graph data))
+
+(defrecord MemoryStore [graph]
+  Storage
+  (resolve [_ pattern]
+    (mem/resolve-pattern graph pattern))
+
+  (join [_ output-pattern patterns]
+    (->> (join-patterns graph patterns)
+         (project output-pattern)))
+
+  (assert-data [_ data]
+    (add-to-graph graph data))
+
+  (query-insert [this assertion-pattern patterns]
+    (add-to-graph graph (join-patterns this assertion-pattern patterns))))
