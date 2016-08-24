@@ -41,6 +41,8 @@
   [(s/one EPVPattern "Pattern from rule body")
    (s/one (s/atom ConstraintData) "count_and_dirty")])
 
+(def Results [[(s/pred (complement symbol?) "Value")]])
+
 ;; Rules defined by a horn clause. The head is a simple pattern,
 ;; the body is conjunction of pattern matches.
 ;; All rules have a name, and a list of names of downstream rules.
