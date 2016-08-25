@@ -1,7 +1,7 @@
 (ns naga.storage.memory
   (:require [clojure.set :as set]
             [schema.core :as s]
-            [naga.structs :as st :refer [EPVPattern Results]]
+            [naga.structs :as st :refer [EPVPattern Results Value]]
             [naga.store :as store]
             [naga.util :as u]
             [naga.storage.memory-index :as mem]
@@ -15,19 +15,15 @@
    s :- [s/Any]]
   (remove (partial = e) s))
 
-(s/defn vartest? :- s/Bool
-  [x]
-  (and (symbol? x) (= \? (first (name x)))))
-
-(s/defn bindings :- #{Symbol}
+(s/defn vars :- [Symbol]
   "Return a seq of all variables in a pattern"
   [pattern :- EPVPattern]
-  (filter vartest? pattern))
+  (filter mem/vartest? pattern))
 
-(s/defn bindings-set :- #{Symbol}
+(s/defn vars-set :- #{Symbol}
   "Return a set of all variables in a pattern"
   [pattern :- EPVPattern]
-  (into #{} (bindings pattern)))
+  (into #{} (vars pattern)))
 
 (s/defn paths :- [[EPVPattern]]
   "Returns a seq of all paths through the constraints"
@@ -41,7 +37,7 @@
    (apply concat
           (keep    ;; discard paths that can't proceed (they return nil)
            (fn [p]
-             (let [b (bindings-set p)]
+             (let [b (vars-set p)]
                ;; only proceed when the pattern matches what has been bound
                (if (or (empty? bound) (seq (set/intersection b bound)))
                  ;; pattern can be added to the path, get the other patterns
@@ -79,23 +75,23 @@
 
 (s/defn matching-vars :- {s/Num s/Num}
   "Returns pairs of indexes into seqs where the vars match"
-  [from :- [Symbol]
-   to :- [s/Any]]
+  [from :- [s/Any]
+   to :- [Symbol]]
   (->> to
        (keep-indexed
         (fn [nt vt]
           (seq
            (keep-indexed
             (fn [nf vf]
-              (if (and (vartest? vf) (= vt vf))
+              (if (and (mem/vartest? vf) (= vt vf))
                 [nf nt]))
             from))))
        (apply concat)
        (into {})))
 
-(s/defn modify-pattern :- EPVPattern
+(s/defn modify-pattern :- [s/Any]
   "Creates a new EPVPattern from an existing one, based on existing bindings."
-  [existing :- [Symbol]
+  [existing :- [Value]
    mapping :- {s/Num s/Num}
    pattern :- EPVPattern]
   (map-indexed (fn [n v]
@@ -106,11 +102,14 @@
 
 (s/defn left-join :- Results
   "Takes a partial result, and joins on the resolution of a pattern"
-  [graph :- mem/Graph
+  [graph
    part :- Results
    pattern :- EPVPattern]
   (let [cols (:cols (meta part))
-        new-cols (into [] (concat cols (bindings pattern)))
+        total-cols (->> (vars pattern)
+                        (remove (set cols))
+                        (concat cols)
+                        (into []))
         pattern->left (matching-vars pattern cols)]
     ;; iterate over part, lookup pattern
     (with-meta
@@ -118,11 +117,11 @@
             :let [lookup (modify-pattern lrow pattern->left pattern)]
             rrow (mem/resolve-pattern graph lookup)]
         (concat lrow rrow))
-      {:cols new-cols})))
+      {:cols total-cols})))
 
 (s/defn join-patterns :- Results
   "Joins the resolutions for a series of patterns into a single result."
-  [graph :- mem/Graph
+  [graph
    patterns :- [EPVPattern]
    & options]
   (let [resolution-map (u/mapmap (fn [p]
@@ -143,7 +142,7 @@
 
         part-result (with-meta
                       (resolution-map fpath)
-                      {:cols fpath})]
+                      {:cols (vars fpath)})]
 
     (reduce ljoin part-result rpath)))
 
@@ -151,17 +150,17 @@
 (s/defn project :- Results
   [pattern :- [s/Any]
    data :- Results]
-  (let [pattern->data (matching-vars pattern data)]
+  (let [pattern->data (matching-vars pattern (:cols (meta data)))]
     (map #(modify-pattern % pattern->data pattern) data)))
 
 (s/defn add-to-graph
-  [graph :- mem/Graph
+  [graph
    data :- Results]
-  (reduce (partial apply mem/graph-add) graph data))
+  (reduce (fn [acc d] (apply mem/graph-add acc d)) graph data))
 
 (defrecord MemoryStore [graph]
   Storage
-  (resolve [_ pattern]
+  (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 
   (join [_ output-pattern patterns]
@@ -169,7 +168,9 @@
          (project output-pattern)))
 
   (assert-data [_ data]
-    (add-to-graph graph data))
+    (->MemoryStore (add-to-graph graph data)))
 
   (query-insert [this assertion-pattern patterns]
-    (add-to-graph graph (join-patterns this assertion-pattern patterns))))
+    (->MemoryStore (add-to-graph graph (join-patterns graph assertion-pattern patterns)))))
+
+(def new-store (->MemoryStore mem/empty-graph))

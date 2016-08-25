@@ -29,7 +29,7 @@
   [storage :- Storage
    status :- StatusMap
    p :- EPVPattern]
-  (let [resolution (store/resolve storage p)
+  (let [resolution (store/resolve-pattern storage p)
         last-count (:last-count @(get status p))]
     (when-not (= last-count (count resolution))
       (with-meta p {:resolution resolution}))))

@@ -27,7 +27,11 @@
                 new-idx (if (seq new-idx2) (assoc idx a new-idx2) (dissoc idx a))]
             new-idx))))))
 
-(defn- simplify [g & ks] (map #(if (= ? %) ? :v) ks))
+(s/defn vartest? :- s/Bool
+  [x]
+  (and (symbol? x) (= \? (first (name x)))))
+
+(defn- simplify [g & ks] (map #(if (vartest? %) ? :v) ks))
 
 (defmulti index-get "Lookup an index in the graph for the requested data" simplify)
 
@@ -66,4 +70,4 @@
   [graph [s p o :as pattern]]
   (resolve-triple graph s p o))
 
-(def empty-graph (GraphIndexed. {} {} {}))
+(def empty-graph (->GraphIndexed {} {} {}))
