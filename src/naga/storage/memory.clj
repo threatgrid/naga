@@ -1,4 +1,6 @@
-(ns naga.storage.memory
+(ns ^{:doc "A storage implementation over in-memory indexing. Includes full query engine."
+      :author "Paula Gearon"}
+    naga.storage.memory
   (:require [clojure.set :as set]
             [schema.core :as s]
             [naga.structs :as st :refer [EPVPattern Results Value]]
