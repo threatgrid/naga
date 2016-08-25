@@ -27,7 +27,8 @@
         r3 (unordered-resolve s '[:a :p1 ?a])
         r4 (unordered-resolve s '[?a :p2 :z])
         r5 (unordered-resolve s '[:a ?a :x])
-        r6 (unordered-resolve s '[:a :p4 ?a])]
+        r6 (unordered-resolve s '[:a :p4 ?a])
+        r7 (unordered-resolve s '[:c :p4 :t])]
     (is (= #{[:p1 :x]
              [:p1 :y]
              [:p2 :z]
@@ -39,7 +40,8 @@
     (is (= #{[:a]} r4))
     (is (= #{[:p1]
              [:p3]} r5))
-    (is (empty? r6))))
+    (is (empty? r6))
+    (is (= #{[]} r7))))
 
 (def jdata
   [[:a :p1 :x]
@@ -61,8 +63,12 @@
 
 (deftest test-join
   (let [s (assert-data new-store jdata)
-        r1 (unordered-join s '[?a ?b ?d] '[[:a ?a ?b] [?b ?c ?d]])
-        r2 (unordered-join s '[?a ?b ?d] '[[?a ?b :x] [:a ?b ?d]])]
+        r1 (unordered-join s '[?a ?b ?d] '[[:a ?a  ?b] [?b ?c  ?d]])
+        r2 (unordered-join s '[?a ?b ?d] '[[?a ?b  :x] [:a ?b  ?d]])
+        r3 (unordered-join s '[?x ?y]    '[[:a :p1 ?x] [:y :q1 ?y]])
+        r4 (unordered-join s '[?x]       '[[:a :p1 ?x] [:y :q1 :l]])
+        r5 (unordered-join s '[?x ?y]    '[[:a :p1 ?x] [:y ?y  ?z]])
+        ]
     (is (= #{[:p1 :x :l]
              [:p1 :x :m]
              [:p1 :y :l]
@@ -75,4 +81,34 @@
              [:b :p1 :x]
              [:b :p1 :y]
              [:b :p2 :z]} r2))
-    ))
+    (is (= #{[:x :l]
+             [:y :l]} r3))
+    (is (= #{[:x]
+             [:y]} r4))
+    (is (= #{[:x :q1]
+             [:x :q3]
+             [:y :q1]
+             [:y :q3]} r5))))
+
+
+(def j2data
+  [[:a :p1 :b]
+   [:a :p1 :b]
+   [:a :p2 :z]
+   [:a :p3 :x]
+   [:b :px :c]
+   [:b :px :d]
+   [:b :py :c]
+   [:c :pa :t]
+   [:c :pb :u]
+   [:d :pz :l]
+   [:x :q2 :m]
+   [:y :q1 :l]
+   [:y :q3 :n]])
+
+(deftest test-multi-join
+  (let [s (assert-data new-store j2data)
+        r1 (unordered-join s '[?p ?v] '[[:a ?a ?b] [?b :px ?d] [?d ?p ?v]])]
+    (is (= #{[:pa :t]
+             [:pb :u]
+             [:pz :l]} r1))))
