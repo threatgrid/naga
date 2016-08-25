@@ -1,4 +1,10 @@
-(ns naga.queue
+(ns ^{:doc "Defines a Queue structure that can be added to the tail, and removed from the head.
+Anything already in the queue (compared by ID) will not be added again, but a function can
+be provided that will update the element when it is already present.
+Includes a 'salience' which allows elements to be promoted through the queue ahead
+of less salient elements."
+      :author "Paula Gearon"}
+    naga.queue
   (:refer-clojure :exclude [pop])
   (:require [schema.core :as s :refer [=>]]))
 

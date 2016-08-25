@@ -1,14 +1,14 @@
 (ns ^{:doc "A storage implementation over in-memory indexing. Includes full query engine."
       :author "Paula Gearon"}
     naga.storage.memory
-  (:require [clojure.set :as set]
-            [schema.core :as s]
-            [naga.structs :as st :refer [EPVPattern Results Value]]
-            [naga.store :as store]
-            [naga.util :as u]
-            [naga.storage.memory-index :as mem])
-  (:import [clojure.lang Symbol]
-           [naga.store Storage]))
+    (:require [clojure.set :as set]
+              [schema.core :as s]
+              [naga.structs :as st :refer [EPVPattern Results Value]]
+              [naga.store :as store]
+              [naga.util :as u]
+              [naga.storage.memory-index :as mem])
+    (:import [clojure.lang Symbol]
+             [naga.store Storage]))
 
 (s/defn without :- [s/Any]
   "Returns a sequence minus a specific element"
@@ -55,9 +55,11 @@
   "Calculates a plan based on no outer joins, and minimized joins"
   [patterns :- [EPVPattern]
    count-map :- {EPVPattern s/Num}]
-  (->> (paths patterns)
-       (sort-by (partial mapv count-map))
-       first))
+  (or
+   (->> (paths patterns)
+        (sort-by (partial mapv count-map))
+        first)
+   patterns)) ;; TODO: longest paths with minimized cross products
 
 (s/defn user-plan
   "Returns the original path specified by the user"

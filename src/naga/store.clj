@@ -1,5 +1,6 @@
-(ns naga.store
-  "Storage API for talking to external storage")
+(ns ^{:doc "Storage API for talking to external storage"
+      :author "Paula Gearon"}
+    naga.store)
 
 (defprotocol Storage
   (resolve-pattern [store pattern] "Resolves a pattern against storage")

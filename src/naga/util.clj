@@ -1,6 +1,7 @@
-(ns naga.util
-  "The ubiquitous utility namespace that every project seems to have"
-  (:require [schema.core :as s :refer [=>]]))
+(ns ^{:doc "The ubiquitous utility namespace that every project seems to have"
+      :author "Paula Gearon"}
+    naga.util
+    (:require [schema.core :as s :refer [=>]]))
 
 (s/defn mapmap :- {s/Any s/Any}
   "Creates a map from functions applied to a seq.

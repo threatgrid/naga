@@ -1,8 +1,9 @@
-(ns naga.structs
-  "Defines the schemas for rule structures"
-  (:require [schema.core :as s]
-            [naga.util :as u])
-  (:import [clojure.lang Symbol]))
+(ns ^{:doc "Defines the schemas for rule structures"
+      :author "Paula Gearon"}
+    naga.structs
+    (:require [schema.core :as s]
+              [naga.util :as u])
+    (:import [clojure.lang Symbol]))
 
 ;; single element in a rule
 (def EntityPropertyElt
