@@ -4,8 +4,7 @@
             [naga.structs :as st :refer [EPVPattern Results Value]]
             [naga.store :as store]
             [naga.util :as u]
-            [naga.storage.memory-index :as mem]
-            )
+            [naga.storage.memory-index :as mem])
   (:import [clojure.lang Symbol]
            [naga.store Storage]))
 
@@ -94,6 +93,8 @@
   [existing :- [Value]
    mapping :- {s/Num s/Num}
    pattern :- EPVPattern]
+  ;; TODO: this is in an inner loop. Is it faster to:
+  ;;       (reduce (fn [p [f t]] (assoc p f t)) pattern mapping)
   (map-indexed (fn [n v]
                  (if-let [x (mapping n)]
                    (nth existing x)
