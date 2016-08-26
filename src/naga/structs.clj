@@ -1,8 +1,9 @@
-(ns naga.structs
-  "Defines the schemas for rule structures"
-  (:require [schema.core :as s]
-            [naga.util :as u])
-  (:import [clojure.lang Symbol]))
+(ns ^{:doc "Defines the schemas for rule structures"
+      :author "Paula Gearon"}
+    naga.structs
+    (:require [schema.core :as s]
+              [naga.util :as u])
+    (:import [clojure.lang Symbol]))
 
 ;; single element in a rule
 (def EntityPropertyElt
@@ -40,6 +41,10 @@
   "Convenience for representing a single key/value pair in a StatusMap"
   [(s/one EPVPattern "Pattern from rule body")
    (s/one (s/atom ConstraintData) "count_and_dirty")])
+
+(def Value (s/pred (complement symbol?) "Value"))
+
+(def Results [[Value]])
 
 ;; Rules defined by a horn clause. The head is a simple pattern,
 ;; the body is conjunction of pattern matches.

@@ -1,19 +1,21 @@
-(ns naga.engine
-  (:require [naga.structs :as st :refer [EPVPattern RulePatternPair
-                                         StatusMap StatusMapEntry Body Program]]
-            [naga.queue :as q]
-            [naga.store :as store]
-            [naga.util :as u]
-            [schema.core :as s])
-  (:import [naga.structs Rule]
-           [naga.store Storage]
-           [naga.queue PQueue]))
+(ns ^{:doc "Functions to run rules until completion."
+      :author "Paula Gearon"}
+    naga.engine
+    (:require [naga.structs :as st :refer [EPVPattern RulePatternPair
+                                           StatusMap StatusMapEntry Body Program]]
+              [naga.queue :as q]
+              [naga.store :as store]
+              [naga.util :as u]
+              [schema.core :as s])
+    (:import [naga.structs Rule]
+             [naga.store Storage]
+             [naga.queue PQueue]))
 
 
 (def true* (constantly true))
 
 
-(s/defn extract-dirty-pattern :- EPVPattern
+(s/defn extract-dirty-pattern :- (s/maybe EPVPattern)
   "Takes a key and value pair (from a status map) and determines if
   the value (a ConstraintData) is marked dirty.  If it is dirty, then return
   the key (an EPVPattern)."
@@ -29,7 +31,7 @@
   [storage :- Storage
    status :- StatusMap
    p :- EPVPattern]
-  (let [resolution (store/resolve storage p)
+  (let [resolution (store/resolve-pattern storage p)
         last-count (:last-count @(get status p))]
     (when-not (= last-count (count resolution))
       (with-meta p {:resolution resolution}))))
@@ -89,7 +91,9 @@
         (if (nil? current-rule)
           ;; finished, build results as rule names mapped to how often
           ;; the rule was run
-          (u/mapmap :name (comp deref :execution-count) (vals rules))
+          [storage
+           (u/mapmap :name (comp deref :execution-count) (vals rules))]
+          
 
           ;; find if any patterns have updated
           (if-let [dirty-patterns (seq (keep extract-dirty-pattern
@@ -129,10 +133,14 @@
             ;; no dirty patterns, so rule did not need to be run
             (recur remaining-queue storage)))))))
 
-(s/defn run :- s/Bool
+(s/defn run :- [(s/one Storage "Resulting data store")
+                (s/one {s/Str s/Num} "Execution stats")]
   "Runs a program against a given configuration"
   [config :- {s/Keyword s/Any}
    {:keys [rules axioms]} :- Program]
-  (let [storage (store/get-storage-handle config)]
-    (store/assert-data storage axioms)
-    (execute rules storage)))
+  (let [storage (store/get-storage-handle config)
+        storage' (store/start-tx storage)
+        [output-storage stats] (->> (store/assert-data storage' axioms)
+                                    (execute rules))
+        result-storage (store/commit-tx output-storage)]
+    [result-storage stats]))

@@ -1,10 +1,11 @@
-(ns naga.rules
-  "Defines rule structures and constructors to keep them consistent"
-  (:require [schema.core :as s]
-            [naga.structs :as st :refer [EPVPattern RulePatternPair Body Axiom Program]]
-            [naga.util :as u])
-  (:import [clojure.lang Symbol]
-           [naga.structs Rule]))
+(ns ^{:doc "Defines rule structures and constructors to keep them consistent"
+      :author "Paula Gearon"}
+    naga.rules
+    (:require [schema.core :as s]
+              [naga.structs :as st :refer [EPVPattern RulePatternPair Body Axiom Program]]
+              [naga.util :as u])
+    (:import [clojure.lang Symbol]
+             [naga.structs Rule]))
 
 (defn- gen-rule-name [] (gensym "rule-"))
 
