@@ -56,24 +56,48 @@
     (e/execute (:rules p2) stest/empty-store)
     (is (= 4 @(:execution-count r2)))))
 
-(defn short-rule
-  [{:keys [head body]}]
-  (concat [head :-] body))
-
 (deftest run-family
   (store/register-storage! :memory mem/create-store)
-  (let [config {:type :memory}
-        program (r/create-program rules axioms)
+  (let [program (r/create-program rules axioms)
         [store results] (e/run {:type :memory} program)
         unk (store/resolve-pattern store '[?n :uncle ?u])]
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk))))
 
-  (let [original-store (store/get-storage-handle {:type :memory})
-        original-store (store/assert-data original-store axioms)
+  (let [fresh-store (store/get-storage-handle {:type :memory})
+        original-store (store/assert-data fresh-store axioms)
         config {:type :memory :store original-store}
         program (r/create-program rules [])
         [store results] (e/run config program)
         unk (store/resolve-pattern store '[?n :uncle ?u])]
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
+
+
+(defn short-rule
+  [{:keys [head body]}]
+  (concat [head :-] body))
+
+(defn demo-family
+  []
+  (store/register-storage! :memory mem/create-store)
+
+  (let [program (r/create-program rules axioms)
+        [store results] (e/run {:type :memory} program)
+        unk (store/resolve-pattern store '[?n :uncle ?u])]
+
+    (println "ORIGINAL DATA")
+    (pprint axioms)
+
+    (println "RULES")
+    (pprint (map short-rule rules))
+
+    (println "OUTPUT DATABASE")
+    (pprint (store/query store '[?e ?p ?v] '[[?e ?p ?v]]))
+
+    (println "Uncle data")
+    (pprint unk)
+
+    (println)
+    (pprint results)
+    ))

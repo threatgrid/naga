@@ -140,7 +140,7 @@
    {:keys [rules axioms]} :- Program]
   (let [storage (store/get-storage-handle config)
         storage' (store/start-tx storage)
-        [output-storage stats] (->> (store/assert-data storage axioms)
+        [output-storage stats] (->> (store/assert-data storage' axioms)
                                     (execute rules))
         result-storage (store/commit-tx output-storage)]
     [result-storage stats]))
