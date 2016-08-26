@@ -21,7 +21,7 @@
   (into #{} (resolve-pattern g pattern)))
 
 (deftest test-load
-  (let [s (assert-data new-store data)
+  (let [s (assert-data empty-store data)
         r1 (unordered-resolve s '[:a ?a ?b])
         r2 (unordered-resolve s '[?a :p2 ?b])
         r3 (unordered-resolve s '[:a :p1 ?a])
@@ -57,18 +57,17 @@
    [:y :q1 :l]
    [:y :q3 :n]])
 
-(defn unordered-join
+(defn unordered-query
   [s op pattern]
-  (into #{} (join s op pattern)))
+  (into #{} (query s op pattern)))
 
 (deftest test-join
-  (let [s (assert-data new-store jdata)
-        r1 (unordered-join s '[?a ?b ?d] '[[:a ?a  ?b] [?b ?c  ?d]])
-        r2 (unordered-join s '[?a ?b ?d] '[[?a ?b  :x] [:a ?b  ?d]])
-        r3 (unordered-join s '[?x ?y]    '[[:a :p1 ?x] [:y :q1 ?y]])
-        r4 (unordered-join s '[?x]       '[[:a :p1 ?x] [:y :q1 :l]])
-        r5 (unordered-join s '[?x ?y]    '[[:a :p1 ?x] [:y ?y  ?z]])
-        ]
+  (let [s (assert-data empty-store jdata)
+        r1 (unordered-query s '[?a ?b ?d] '[[:a ?a  ?b] [?b ?c  ?d]])
+        r2 (unordered-query s '[?a ?b ?d] '[[?a ?b  :x] [:a ?b  ?d]])
+        r3 (unordered-query s '[?x ?y]    '[[:a :p1 ?x] [:y :q1 ?y]])
+        r4 (unordered-query s '[?x]       '[[:a :p1 ?x] [:y :q1 :l]])
+        r5 (unordered-query s '[?x ?y]    '[[:a :p1 ?x] [:y ?y  ?z]])]
     (is (= #{[:p1 :x :l]
              [:p1 :x :m]
              [:p1 :y :l]
@@ -107,8 +106,8 @@
    [:y :q3 :n]])
 
 (deftest test-multi-join
-  (let [s (assert-data new-store j2data)
-        r1 (unordered-join s '[?p ?v] '[[:a ?a ?b] [?b :px ?d] [?d ?p ?v]])]
+  (let [s (assert-data empty-store j2data)
+        r1 (unordered-query s '[?p ?v] '[[:a ?a ?b] [?b :px ?d] [?d ?p ?v]])]
     (is (= #{[:pa :t]
              [:pb :u]
              [:pz :l]} r1))))

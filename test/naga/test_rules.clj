@@ -2,7 +2,9 @@
   (:require [naga.rules :as r :refer [r]]
             [naga.structs :as structs :refer [new-rule]]
             [naga.engine :as e]
+            [naga.store :as store]
             [naga.storage.test :as stest]
+            [naga.storage.memory :as mem]
             [schema.test :as st]
             [clojure.test :refer :all]
             [clojure.pprint :refer [pprint]]))
@@ -13,6 +15,7 @@
   [(r "shared-parent" [?b :parent ?c] :- [?a :sibling ?b] [?a :parent ?c])
    (r "sibling->brother" [?a :brother ?b] :- [?a :sibling ?b] [?b :gender :male])
    (r "uncle" [?a :uncle ?c] :- [?a :parent ?b] [?b :brother ?c])
+   ;; (r "siblings" [?a :sibling ?b] :- [?a :parent ?p] [?b :parent ?p] (not= ?a ?b))
    (r "male-father" [?f :gender :male] :- [?a :father ?f])
    (r "parent-father" [?a :parent ?f] :- [?a :father ?f])])
 
@@ -29,8 +32,6 @@
 
 (deftest build-program
   (let [{program :rules} (r/create-program rules [])]
-    ; (println "PROGRAM:")
-    ; (pprint program)
     (is (= (count rules) (count program)))
     (is (unord= (map first (get-in program ["shared-parent" :downstream]))
                 ["shared-parent" "uncle"]))
@@ -54,3 +55,16 @@
     (is (= 1 @(:execution-count r1)))
     (e/execute (:rules p2) stest/empty-store)
     (is (= 4 @(:execution-count r2)))))
+
+(defn short-rule
+  [{:keys [head body]}]
+  (concat [head :-] body))
+
+(deftest run-family
+  (store/register-storage! :memory mem/create-store)
+  (let [config {:type :memory}
+        program (r/create-program rules axioms)
+        [store results] (e/run {:type :memory} program)
+        unk (store/resolve-pattern store '[?n :uncle ?u])]
+    (is (= 2 (count unk)))
+    (is (= #{[:fred :george] [:barney :george]} (set unk)))))

@@ -5,7 +5,7 @@
 (s/defrecord TestStore [data]
   Storage
   (resolve-pattern [store pattern] data)
-  (join [store output-pattern patterns] data)
+  (query [store output-pattern patterns] data)
   (assert-data [store new-data]
     (if (> 4 (count data))
       (->TestStore (conj data 0))

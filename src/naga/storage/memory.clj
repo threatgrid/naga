@@ -168,7 +168,7 @@
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 
-  (join [_ output-pattern patterns]
+  (query [_ output-pattern patterns]
     (->> (join-patterns graph patterns)
          (project output-pattern)))
 
@@ -176,6 +176,14 @@
     (->MemoryStore (add-to-graph graph data)))
 
   (query-insert [this assertion-pattern patterns]
-    (->MemoryStore (add-to-graph graph (join-patterns graph assertion-pattern patterns)))))
+    (->> (join-patterns graph patterns)
+         (project assertion-pattern)
+         (add-to-graph graph)
+         ->MemoryStore)))
 
-(def new-store (->MemoryStore mem/empty-graph))
+(def empty-store (->MemoryStore mem/empty-graph))
+
+(s/defn create-store :- Storage
+  "Factory function to create a store"
+  [config]
+  empty-store)
