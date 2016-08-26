@@ -4,6 +4,8 @@
 
 (s/defrecord TestStore [data]
   Storage
+  (start-tx [store] store)
+  (commit-tx [store] store)
   (resolve-pattern [store pattern] data)
   (query [store output-pattern patterns] data)
   (assert-data [store new-data]

@@ -3,6 +3,8 @@
     naga.store)
 
 (defprotocol Storage
+  (start-tx [store] "Starts a transaction, if supported")
+  (commit-tx [store] "Commits a transaction, if supported")
   (resolve-pattern [store pattern] "Resolves a pattern against storage")
   (query [store output-pattern patterns] "Resolves a set of patterns (if not already resolved) and joins the results")
   (assert-data [store data] "Inserts new axioms")

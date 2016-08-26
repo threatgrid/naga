@@ -165,6 +165,10 @@
 
 (defrecord MemoryStore [graph]
   Storage
+  (start-tx [this] this)
+
+  (commit-tx [this] this)
+  
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 

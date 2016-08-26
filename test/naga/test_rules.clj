@@ -67,4 +67,13 @@
         [store results] (e/run {:type :memory} program)
         unk (store/resolve-pattern store '[?n :uncle ?u])]
     (is (= 2 (count unk)))
+    (is (= #{[:fred :george] [:barney :george]} (set unk))))
+
+  (let [original-store (store/get-storage-handle {:type :memory})
+        original-store (store/assert-data original-store axioms)
+        config {:type :memory :store original-store}
+        program (r/create-program rules [])
+        [store results] (e/run config program)
+        unk (store/resolve-pattern store '[?n :uncle ?u])]
+    (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
