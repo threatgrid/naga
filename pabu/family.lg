@@ -1,0 +1,12 @@
+sibling(fred, barney).
+parent(fred, mary).
+sibling(mary, george).
+gender(george, male).
+
+parent(B, C) :- sibling(A, B), parent(A, C).
+brother(A, B) :- sibling(A, B), gender(B, male).
+uncle(A, C) :- parent(A, B), brother(B, C).
+/* sibling(A, B) :- parent(A, P), parent(B, P). */
+gender(F, male) :- father(A, F).
+parent(A, F) :- father(A, F).
+
