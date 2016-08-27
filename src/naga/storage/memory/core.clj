@@ -1,12 +1,12 @@
 (ns ^{:doc "A storage implementation over in-memory indexing. Includes full query engine."
       :author "Paula Gearon"}
-    naga.storage.memory
+    naga.storage.memory.core
     (:require [clojure.set :as set]
               [schema.core :as s]
-              [naga.structs :as st :refer [EPVPattern Results Value]]
+              [naga.schema.structs :as st :refer [EPVPattern Results Value]]
               [naga.store :as store]
               [naga.util :as u]
-              [naga.storage.memory-index :as mem])
+              [naga.storage.memory.index :as mem])
     (:import [clojure.lang Symbol]
              [naga.store Storage]))
 

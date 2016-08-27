@@ -1,10 +1,10 @@
 (ns naga.test-rules
   (:require [naga.rules :as r :refer [r]]
-            [naga.structs :as structs :refer [new-rule]]
+            [naga.schema.structs :as structs :refer [new-rule]]
             [naga.engine :as e]
             [naga.store :as store]
             [naga.storage.test :as stest]
-            [naga.storage.memory :as mem]
+            [naga.storage.memory.core :as mem]
             [schema.test :as st]
             [clojure.test :refer :all]
             [clojure.pprint :refer [pprint]]))

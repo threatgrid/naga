@@ -1,13 +1,14 @@
 (ns ^{:doc "Functions to run rules until completion."
       :author "Paula Gearon"}
     naga.engine
-    (:require [naga.structs :as st :refer [EPVPattern RulePatternPair
+    (:require [naga.schema.structs :as st
+                                   :refer [EPVPattern RulePatternPair
                                            StatusMap StatusMapEntry Body Program]]
               [naga.queue :as q]
               [naga.store :as store]
               [naga.util :as u]
               [schema.core :as s])
-    (:import [naga.structs Rule]
+    (:import [naga.schema.structs Rule]
              [naga.store Storage]
              [naga.queue PQueue]))
 

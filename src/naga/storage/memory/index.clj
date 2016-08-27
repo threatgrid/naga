@@ -1,6 +1,6 @@
 (ns ^{:doc "A graph implementation with full indexing."
       :author "Paula Gearon"}
-    naga.storage.memory-index
+    naga.storage.memory.index
     (:require [schema.core :as s]))
 
 (def ? :?)

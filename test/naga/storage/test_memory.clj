@@ -1,5 +1,5 @@
 (ns naga.storage.test-memory
-  (:require [naga.storage.memory :refer :all]
+  (:require [naga.storage.memory.core :refer :all]
             [naga.store :refer :all]
             [clojure.test :refer :all]
             [schema.test :as st]))

@@ -1,5 +1,5 @@
 (ns naga.storage.test-memory-index
-  (:require [naga.storage.memory-index :refer :all]
+  (:require [naga.storage.memory.index :refer :all]
             [clojure.test :refer :all]
             [schema.test :as st]))
 

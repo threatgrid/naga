@@ -1,6 +1,6 @@
 (ns ^{:doc "Defines the schemas for rule structures"
       :author "Paula Gearon"}
-    naga.structs
+    naga.schema.structs
     (:require [schema.core :as s]
               [naga.util :as u])
     (:import [clojure.lang Symbol]))
