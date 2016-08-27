@@ -191,3 +191,5 @@
   "Factory function to create a store"
   [config]
   empty-store)
+
+(store/register-storage! :memory create-store)
