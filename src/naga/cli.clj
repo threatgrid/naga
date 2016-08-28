@@ -57,5 +57,5 @@
           data (store/resolve-pattern store '[?e ?p ?v])]
       (println "INPUT DATA") 
       (doseq [a axioms] (println (predicate-string a)))
-      (println "\nOUTPUT DATA")
-      (doseq [a data] (println (predicate-string a))))))
+      (println "\nNEW DATA")
+      (doseq [a (remove (set axioms) data)] (println (predicate-string a))))))
