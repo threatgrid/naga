@@ -14,4 +14,4 @@
   ([keyfn :- (=> s/Any s/Any)
     valfn :- (=> s/Any s/Any)
     s :- [s/Any]]
-    (into {} (map (fn [e] [(keyfn e) (valfn e)]) s))))
+    (into {} (map (juxt keyfn valfn) s))))
