@@ -7,7 +7,7 @@
     (:import [clojure.lang Symbol]
              [naga.schema.structs Rule]))
 
-(defn- gen-rule-name [] (gensym "rule-"))
+(defn- gen-rule-name [] (name (gensym "rule-")))
 
 (s/defn rule :- Rule
   "Creates a new rule"
