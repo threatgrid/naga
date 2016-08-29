@@ -35,7 +35,7 @@ Parses code and returns Naga rules."
   [{axiom :axiom :as axiom-ast} :- AxiomAST]
   (triplet axiom))
 
-(def VK (s/cond-pre s/Keyword s/Symbol))
+(def VK "Either a Variable or a Keyword" (s/cond-pre s/Keyword s/Symbol))
 
 (def Predicate [(s/one VK "property")
                 (s/one Args "arguments")])
