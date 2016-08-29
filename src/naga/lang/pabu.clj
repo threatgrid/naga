@@ -15,7 +15,7 @@ Parses code and returns Naga rules."
    (s/optional s/Any "value")])
 
 (def AxiomAST
-  {:type :axiom
+  {:type (s/eq :axiom)
    :axiom [(s/one s/Keyword "Property")
            (s/one Args "args")]})
 
@@ -41,7 +41,7 @@ Parses code and returns Naga rules."
                 (s/one Args "arguments")])
 
 (def RuleAST
-  {:type :rule
+  {:type (s/eq :rule)
    :head [(s/one VK "property")
           (s/one Args "arguments")]
    :body [Predicate]})
@@ -49,7 +49,7 @@ Parses code and returns Naga rules."
 (s/defn ast->rule
   "Converts the rule structure returned from the parser"
   [{:keys [head body] :as rule-ast} :- RuleAST]
-  (r/rule (triplet head) (map triplet body) (gensym (name (first head)))))
+  (r/rule (triplet head) (map triplet body) (-> head first name gensym name)))
 
 (s/defn read-str :- {:rules [Rule]
                      :axioms [Axiom]}
