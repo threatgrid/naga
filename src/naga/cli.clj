@@ -33,29 +33,65 @@
         ""]
        (string/join \newline)))
 
-(defn nm [k]
+(defn run-all
+  "Runs a program, and returns the data processed, the results, and the stats.
+   Takes an input stream. Returns a map of:
+  :input, :output, :stats"
+  [in]
+        ;; read the program
+  (let [{:keys [rules axioms]} (pabu/read-stream in)
+
+        ;; instantiate a database. For the demo we're using "in-memory"
+        fresh-store (store/get-storage-handle {:type :memory})
+
+        ;; assert the initial axioms. The program can do that, but
+        ;; we want to do it here so we can see the original store
+        ;; (we may use it for comparisons some time in the future)
+        original-store (store/assert-data fresh-store axioms)
+
+        ;; Configure the storage the program will use. Provide a store
+        ;; so the program won't try to create its own
+        config {:type :memory :store original-store}
+
+        ;; compile the program
+        program (r/create-program rules [])
+
+        ;; run the program
+        [store results] (e/run config program)
+
+        ;; dump the database by resolving an unbound constraint
+        data (store/resolve-pattern store '[?e ?p ?v])]
+    {:input axioms
+     :output (remove (set axioms) data)
+     :stats results}))
+
+
+(defn- nm
+  "Returns a string version of a keyword. These are not being represented
+   as Clojure keywords, so namespaces (when they exist) are separated by
+   a : character"
+  [k]
   (if-let [n (namespace k)]
     (str n ":" (name k))
     (name k)))
 
-(defn predicate-string
+
+(defn- predicate-string
+  "Convert a predicate triplet into a string."
   [[e p v]]
-  (str (nm p) "(" (nm e) ", " (nm v) ")."))
+  (if (= p :rdf/type)
+    (str (nm e) "(" (nm v) ").")
+    (str (nm p) "(" (nm e) ", " (nm v) ").")))
+
 
 (defn -main [& args]
   (let [{:keys [options arguments] :as opts} (parse-opts args cli-options)]
     (when (:halp options) (exit 1 (usage opts)))
-    (let [input (if-let [filename (first arguments)]
-                  (io/input-stream filename)
-                  *in*)
-          {:keys [rules axioms]} (pabu/read-stream input)
-          fresh-store (store/get-storage-handle {:type :memory})
-          original-store (store/assert-data fresh-store axioms)
-          config {:type :memory :store original-store}
-          program (r/create-program rules [])
-          [store results] (e/run config program)
-          data (store/resolve-pattern store '[?e ?p ?v])]
+    (let [in-stream (if-let [filename (first arguments)]
+                      (io/input-stream filename)
+                      *in*)
+          {:keys [input output stats]} (run-all in-stream)]
       (println "INPUT DATA") 
-      (doseq [a axioms] (println (predicate-string a)))
+      (doseq [a input] (println (predicate-string a)))
       (println "\nNEW DATA")
-      (doseq [a (remove (set axioms) data)] (println (predicate-string a))))))
+      (doseq [a output] (println (predicate-string a))))))
