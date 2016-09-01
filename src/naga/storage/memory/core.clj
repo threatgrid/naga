@@ -27,7 +27,9 @@
   (into #{} (vars pattern)))
 
 (s/defn paths :- [[EPVPattern]]
-  "Returns a seq of all paths through the constraints"
+  "Returns a seq of all paths through the constraints. A path is defined
+   by new patterns containing at least one variable common to the patterns
+   that appeared before it. This prevents cross products in a join."
   ([patterns :- [EPVPattern]]
    (let [all-paths (paths #{} patterns)]
      (assert (every? (partial = (count patterns)) (map count all-paths))
@@ -52,7 +54,10 @@
            patterns))))
 
 (s/defn min-join-path
-  "Calculates a plan based on no outer joins, and minimized joins"
+  "Calculates a plan based on no outer joins (a cross product), and minimized joins.
+   A plan is the order in which to evaluate constraints and join them to the accumulated
+   evaluated data. If it is not possible to create a path without a cross product,
+   then return a plan of the patterns in the provided order."
   [patterns :- [EPVPattern]
    count-map :- {EPVPattern s/Num}]
   (or
@@ -68,7 +73,7 @@
   patterns)
 
 (s/defn select-planner
-  "Selects a query planner"
+  "Selects a query planner function"
   [options]
   (let [opt (into #{} options)]
     (condp #(get %2 %1) opt
@@ -77,7 +82,10 @@
       min-join-path)))
 
 (s/defn matching-vars :- {s/Num s/Num}
-  "Returns pairs of indexes into seqs where the vars match"
+  "Returns pairs of indexes into seqs where the vars match.
+   For any variable that appears in both sequences, the column number in the
+   'from' parameter gets mapped to the column number of the same variable
+   in the 'to' parameter."
   [from :- [s/Any]
    to :- [Symbol]]
   (->> to
@@ -93,7 +101,9 @@
        (into {})))
 
 (s/defn modify-pattern :- [s/Any]
-  "Creates a new EPVPattern from an existing one, based on existing bindings."
+  "Creates a new EPVPattern from an existing one, based on existing bindings.
+   Uses the mapping to copy from columns in 'existing' to overwrite variableis in 'pattern'.
+   The variable locations have already been found and are in the 'mapping' argument"
   [existing :- [Value]
    mapping :- {s/Num s/Num}
    pattern :- EPVPattern]
@@ -153,6 +163,13 @@
 
 
 (s/defn project :- Results
+  "Converts each row from a result, into just the requested columns, as per the pattern arg.
+   Any specified value in the pattern will be copied into that position in the projection.
+  e.g. For pattern [?h1 :friend ?h2]
+       data: [[h1=frodo h3=bilbo h2=gandalf]
+              [h1=merry h3=pippin h2=frodo]]
+  leads to: [[h1=frodo :friend h2=gandalf]
+             [h1=merry :friend h2=frodo]]"
   [pattern :- [s/Any]
    data :- Results]
   (let [pattern->data (matching-vars pattern (:cols (meta data)))]
