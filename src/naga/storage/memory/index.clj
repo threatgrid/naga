@@ -33,16 +33,16 @@
 
 (defn- simplify [g & ks] (map #(if (vartest? %) ? :v) ks))
 
-(defmulti index-get "Lookup an index in the graph for the requested data" simplify)
+(defmulti get-from-index "Lookup an index in the graph for the requested data" simplify)
 
-(defmethod index-get [:v :v :v] [{idx :spo} s p o] (let [os (get-in idx [s p])] (if (get os o) [[]] [])))
-(defmethod index-get [:v :v  ?] [{idx :spo} s p o] (map vector (get-in idx [s p])))
-(defmethod index-get [:v  ? :v] [{idx :osp} s p o] (map vector (get-in idx [o s])))
-(defmethod index-get [:v  ?  ?] [{idx :spo} s p o] (let [edx (idx s)] (for [p (keys edx) o (edx p)] [p o])))
-(defmethod index-get [ ? :v :v] [{idx :pos} s p o] (map vector (get-in idx [p o])))
-(defmethod index-get [ ? :v  ?] [{idx :pos} s p o] (let [edx (idx p)] (for [o (keys edx) s (edx o)] [s o])))
-(defmethod index-get [ ?  ? :v] [{idx :osp} s p o] (let [edx (idx o)] (for [s (keys edx) p (edx s)] [s p])))
-(defmethod index-get [ ?  ?  ?] [{idx :spo} s p o] (for [s (keys idx) p (keys (idx s)) o ((idx s) p)] [s p o]))
+(defmethod get-from-index [:v :v :v] [{idx :spo} s p o] (let [os (get-in idx [s p])] (if (get os o) [[]] [])))
+(defmethod get-from-index [:v :v  ?] [{idx :spo} s p o] (map vector (get-in idx [s p])))
+(defmethod get-from-index [:v  ? :v] [{idx :osp} s p o] (map vector (get-in idx [o s])))
+(defmethod get-from-index [:v  ?  ?] [{idx :spo} s p o] (let [edx (idx s)] (for [p (keys edx) o (edx p)] [p o])))
+(defmethod get-from-index [ ? :v :v] [{idx :pos} s p o] (map vector (get-in idx [p o])))
+(defmethod get-from-index [ ? :v  ?] [{idx :pos} s p o] (let [edx (idx p)] (for [o (keys edx) s (edx o)] [s o])))
+(defmethod get-from-index [ ?  ? :v] [{idx :osp} s p o] (let [edx (idx o)] (for [s (keys edx) p (edx s)] [s p])))
+(defmethod get-from-index [ ?  ?  ?] [{idx :spo} s p o] (for [s (keys idx) p (keys (idx s)) o ((idx s) p)] [s p o]))
 
 (defprotocol Graph
   (graph-add [this subj pred obj] "Adds triples to the graph")
@@ -63,7 +63,7 @@
       (assoc this :spo idx :pos (index-delete pos pred obj subj) :osp (index-delete osp obj subj pred))
       this))
   (resolve-triple [this subj pred obj]
-    (index-get this subj pred obj)))
+    (get-from-index this subj pred obj)))
 
 (defn resolve-pattern
   "Convenience function to extract elements out of a pattern to query for it"
