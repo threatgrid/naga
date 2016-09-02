@@ -19,6 +19,7 @@
   [c]
   (or (Character/isUpperCase ^Character c) (= \_ c)))
 
+;; parser for upper-case letters
 (defn upper-case-letter
   []
   (token upper-case-letter?))
@@ -26,12 +27,14 @@
 (def non-star (token (complement #{\*})))
 (def non-slash (token (complement #{\/})))
 
+;; parser that looks for comments of the form:  /* the comment */
 (defparser cmnt []
   (let->> [_ (>> (string "/*") (many non-star) (many1 (char \*)))
            _ (many (>> non-slash (many non-star) (many1 (char \*))))
            _ (char \/)]
     (always :cmnt)))
 
+;; parsers for various single characters, etc
 (def whitespace-char (token #{\space \newline \tab}))
 (def opt-whitespace (many (either whitespace-char (cmnt))))
 (def separator (>> opt-whitespace (char \,) opt-whitespace))
@@ -58,10 +61,12 @@
 
 (def number (either* (floating-point) (integer)))
 
+;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
   (let->> [s (many1 (between (char \') (char \') (many (any-char)))) ]
     (always (flatten (interpose \' s)))))
 
+;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
   (let->> [s (many1 (between (char \") (char \") (many (any-char))))]
     (always (flatten (interpose \" s)))))

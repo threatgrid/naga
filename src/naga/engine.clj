@@ -115,7 +115,9 @@
               (if (seq resolved-patterns)
                 ;; TODO: EXECUTE ACTIONS FOR ACTION RULES
                 ;; (if (= rule-type :action)
-                ;;   (do-action (store/query storage head hinted-patterns))
+                ;;   (if-let [data (seq (store/query storage head hinted-patterns))]
+                ;;     (do-action data))
+                ;;     ;; ^ empty data means no action
                 ;;   :else ...)
                 ;; insert data according to the rule
 
