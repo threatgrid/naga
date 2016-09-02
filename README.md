@@ -1,4 +1,5 @@
-# Naga
+# Naga [![Build Status](https://travis-ci.org/threatgrid/naga.svg?branch=master)](https://travis-ci.org/threatgrid/naga)
+
 Datalog based rules engine.
 
 Naga allows users to load data, and define rules to entailed new data. Once rules have been
