@@ -2,97 +2,14 @@
       :author "Paula Gearon"}
   naga.lang.parser
   (:refer-clojure :exclude [char])
-  (:require [the.parsatron :refer :all]))
+  (:require [the.parsatron :refer :all]
+            [naga.lang.basic :refer
+             [whitespace-char opt-whitespace separator open-paren close-paren
+              arg-list elt
+              choice* either*]]
+            [naga.lang.expression :refer [ecomparator fn-symbol expression]]))
 
-(defn choice* 
-  "choice with backtracking."
-  [& args]
-  (apply choice (map attempt args)))
-
-(defn either*
-  "either with backtracking."
-  [p q]
-  (either (attempt p) (attempt q)))
-
-(defn upper-case-letter?
-  "Prolog considers underscores to be equivalent to an uppercase letter"
-  [c]
-  (or (Character/isUpperCase ^Character c) (= \_ c)))
-
-;; parser for upper-case letters
-(defn upper-case-letter
-  []
-  (token upper-case-letter?))
-
-(def non-star (token (complement #{\*})))
-(def non-slash (token (complement #{\/})))
-
-;; parser that looks for comments of the form:  /* the comment */
-(defparser cmnt []
-  (let->> [_ (>> (string "/*") (many non-star) (many1 (char \*)))
-           _ (many (>> non-slash (many non-star) (many1 (char \*))))
-           _ (char \/)]
-    (always :cmnt)))
-
-;; parsers for various single characters, etc
-(def whitespace-char (token #{\space \newline \tab}))
-(def opt-whitespace (many (either whitespace-char (cmnt))))
-(def separator (>> opt-whitespace (char \,) opt-whitespace))
-(def open-paren (>> (char \() opt-whitespace))
-(def close-paren (>> opt-whitespace (char \))))
-
-(def word (many1 (letter)))
-
-(def digits (many1 (digit)))
-
-(defparser signed-digits []
-  (let->> [s (token #{\+ \-})
-           ds digits]
-    (always (cons s ds))))
-
-(defparser integer []
-  (let->> [i (either digits (signed-digits))]
-    (always (Long/parseLong (apply str i)))))
-
-(defparser floating-point []
-  (let->> [i (either digits (signed-digits))
-           f (>> (char \.) (many1 (digit)))]
-    (always (Double/parseDouble (apply str (apply str i) \. f)))))
-
-(def number (either* (floating-point) (integer)))
-
-;; parses strings of the form: 'it''s a string!'
-(defparser pstring1 []
-  (let->> [s (many1 (between (char \') (char \') (many (any-char)))) ]
-    (always (flatten (interpose \' s)))))
-
-;; parses strings of the form: "She said, ""Hello,"" to me."
-(defparser pstring2 []
-  (let->> [s (many1 (between (char \") (char \") (many (any-char))))]
-    (always (flatten (interpose \" s)))))
-
-(def pstring (either (pstring1) (pstring2)))
-
-(defparser variable []
-  (let->> [f (upper-case-letter)
-           r (many (letter))]
-    (always (symbol (apply str "?" (Character/toLowerCase f) r) ))))
-
-(defparser kw []
-  (let->> [r word]
-    (always (keyword (apply str r)))))
-
-(defparser atm []
-  (choice (kw) pstring number))
-
-(defparser elt []
-  (choice (variable) (atm)))
-
-(defparser arg-list []
-  (let->> [f (elt)
-           r (many (>> separator (elt)))]
-    (always (cons f r))))
-
+;; a structure is a predicate with arguments, like foo(bar)
 (defparser structure []
   (let->> [p (elt)
            args (between open-paren close-paren (arg-list))]
@@ -102,6 +19,12 @@
   (let->> [s (structure)
            ss (many (attempt (>> separator (structure))))]
     (always (cons s ss))))
+
+(defparser comparison []
+  (let->> [lhs (expression)
+           c-type (>> opt-whitespace ecomparator)
+           rhs (>> opt-whitespace (expression))]
+    (always (list (fn-symbol ecomparator) lhs rhs))))
 
 (defparser nonbase-clause []
   (let->> [head (>> opt-whitespace (structure))
