@@ -30,6 +30,13 @@ Parses code and returns Naga rules."
     [s :rdf/type property]
     [s property o]))
 
+(defn structure
+  "Converts the AST for a structure into either a triplet or a predicate"
+  [ast-data]
+  (if (vector? ast-data)
+    (triplet ast-data)
+    ast-data))
+
 (s/defn ast->axiom :- Axiom
   "Converts the axiom structure returned from the parser"
   [{axiom :axiom :as axiom-ast} :- AxiomAST]
@@ -49,7 +56,7 @@ Parses code and returns Naga rules."
 (s/defn ast->rule
   "Converts the rule structure returned from the parser"
   [{:keys [head body] :as rule-ast} :- RuleAST]
-  (r/rule (triplet head) (map triplet body) (-> head first name gensym name)))
+  (r/rule (triplet head) (map structure body) (-> head first name gensym name)))
 
 (s/defn read-str :- {:rules [Rule]
                      :axioms [Axiom]}

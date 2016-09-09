@@ -2,7 +2,8 @@
       :author "Paula Gearon"}
   naga.lang.basic
   (:refer-clojure :exclude [char])
-  (:require [the.parsatron :refer :all]))
+  (:require [clojure.string :as str]
+            [the.parsatron :refer :all]))
 
 (defn choice* 
   "choice with backtracking."
@@ -26,7 +27,7 @@
 
 ;; parsers for various single characters, etc
 (def whitespace-char (token #{\space \newline \tab}))
-(def opt-whitespace (many (either whitespace-char (cmnt))))
+(def opt-whitespace (many (either whitespace-char (attempt (cmnt)))))
 (def separator (>> opt-whitespace (char \,) opt-whitespace))
 (def open-paren (>> (char \() opt-whitespace))
 (def close-paren (>> opt-whitespace (char \))))
@@ -52,6 +53,10 @@
 (defn upper-case-letter
   []
   (token upper-case-letter?))
+
+;; This does not include all legal characters.
+;; Consider some others in future, especially >
+(def ns-word (many1 (choice (letter) (char \_) (char \-) (char \:))))
 
 (def word (many1 (letter)))
 
@@ -91,10 +96,24 @@
            r (many (letter))]
     (always (symbol (apply str "?" (Character/toLowerCase f) r) ))))
 
+(defn build-keyword
+  "Creates a keyword from a parsed word token"
+  [wrd]
+  (let [[kns kname :as w] (str/split wrd #":")
+        parts (count w)]
+    ;; use cond without a default to return nil
+    (cond (= 2 parts) (cond (empty? kns) (keyword kname)
+                            (seq kname) (keyword kns kname))
+          (= 1 parts) (if-not (str/ends-with? wrd ":")
+                        (keyword kns)))))
+
 ;; atomic values, like a predicate, are represented as a keyword
 (defparser kw []
-  (let->> [r word]
-    (always (keyword (apply str r)))))
+  (let->> [r ns-word]
+    (let [wrd (apply str r)]
+      (if-let [k (build-keyword wrd)]
+        (always k)
+        (throw (fail (str "Invalid identifier: " wrd)))))))
 
 ;; an atom is a atomic value, a number or a string
 (defparser atm []

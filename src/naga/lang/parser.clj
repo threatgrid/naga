@@ -7,7 +7,13 @@
              [whitespace-char opt-whitespace separator open-paren close-paren
               arg-list elt
               choice* either*]]
-            [naga.lang.expression :refer [ecomparator fn-symbol expression]]))
+            [naga.lang.expression :refer [fn-symbol relation expression]]))
+
+(defparser relational-expr []
+  (let->> [lhs expression
+           c-type (>> opt-whitespace relation)
+           rhs (>> opt-whitespace expression)]
+    (always (list (fn-symbol c-type) lhs rhs))))
 
 ;; a structure is a predicate with arguments, like foo(bar)
 (defparser structure []
@@ -15,17 +21,18 @@
            args (between open-paren close-paren (arg-list))]
     (always [p args])))
 
+;; a list of predicates or expressions
 (defparser structures []
   (let->> [s (structure)
-           ss (many (attempt (>> separator (structure))))]
+           ss (many
+               (attempt
+                (>> separator
+                    (either*
+                     (relational-expr)
+                     (structure)))))]
     (always (cons s ss))))
 
-(defparser comparison []
-  (let->> [lhs (expression)
-           c-type (>> opt-whitespace ecomparator)
-           rhs (>> opt-whitespace (expression))]
-    (always (list (fn-symbol ecomparator) lhs rhs))))
-
+;; a clause with a rule
 (defparser nonbase-clause []
   (let->> [head (>> opt-whitespace (structure))
            _ (>> opt-whitespace (string ":-") opt-whitespace)
@@ -35,6 +42,7 @@
              :head head
              :body body})))
 
+;; an axiom
 (defparser base-clause []
   (let->> [structure (>> opt-whitespace (structure))
            _ (>> opt-whitespace (char \.) opt-whitespace)]

@@ -7,26 +7,49 @@
              [whitespace-char opt-whitespace separator open-paren close-paren
               equals not-equals lt gt lte gte
               plus minus tms divide
-              elt
+              elt pstring
               choice* either*]]))
 
 
-(def ecomparator (choice* equals not-equals lt gt lte gte))
+(def relation (choice* equals not-equals lt gt lte gte))
 
-(def infix-operator (choice* plus minus tms divide))
+(def plus-op (either* plus minus))
+(def mult-op (either* divide tms))
 
 (def fn-symbol
   {\= =, "!=" not=, \< <, \> >, "<=" <=, ">=" >=,
    \+ +, \- -, \* *, \/ /})
 
-(declare expression)
+(defn flatten-expr
+  [op1 op2 f r]
+  (let [p (keep (fn [[o opnd]] (if (= op1 o) opnd)) r)
+        m (keep (fn [[o opnd]] (if (= op2 o) opnd)) r)]
+    (if (seq p)
+      (if (seq m)
+        (apply list (fn-symbol op2) (apply list (fn-symbol op1) f p) m)
+        (apply list (fn-symbol op1) f p))
+      (if (seq m)
+        (apply list (fn-symbol op2) f m)
+        f))))
 
-(defparser op-expression []
-  (let->> [op (>> opt-whitespace infix-operator)
-           e (>> opt-whitespace (expression))]
+(defparser mult-expr []
+  (let->> [op (>> opt-whitespace mult-op)
+           e (>> opt-whitespace (elt))]
     (always [op e])))
 
-(defparser expression []
-  (let->> [f (elt)
-           r (either (op-expression) (always nil))]
-    (always (if r [f r] f))))
+(defparser multiplicative-expr []
+  (let->> [unry (elt)
+           munry (many (attempt (mult-expr)))]
+    (always (flatten-expr \* \/ unry munry))))
+
+(defparser add-expr []
+  (let->> [op (>> opt-whitespace plus-op)
+           e (>> opt-whitespace (multiplicative-expr))]
+    (always [op e])))
+
+(defparser additive-expr []
+  (let->> [mult (multiplicative-expr)
+           mmult (many (attempt (add-expr)))]
+    (always (flatten-expr \+ \- mult mmult))))
+
+(def expression (choice* (additive-expr) pstring))
