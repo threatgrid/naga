@@ -26,6 +26,15 @@
     EntityPattern
     EntityPropertyPattern))
 
+(s/defn vartest? :- s/Bool
+  [x]
+  (and (symbol? x) (= \? (first (name x)))))
+
+(s/defn vars :- [Symbol]
+  "Return a seq of all variables in a pattern"
+  [pattern :- EPVPattern]
+  (filter vartest? pattern))
+
 (def RulePatternPair [(s/one s/Str "rule-name")
                       (s/one EPVPattern "pattern")])
 

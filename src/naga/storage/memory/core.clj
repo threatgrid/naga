@@ -7,8 +7,13 @@
               [naga.store :as store]
               [naga.util :as u]
               [naga.storage.memory.index :as mem])
-    (:import [clojure.lang Symbol]
+    (:import [clojure.lang Symbol IPersistentVector IPersistentList]
              [naga.store Storage]))
+
+(defprotocol Constraint
+  (get-vars [c] "Returns a seq of the vars in a constraint")
+  (left-join [c r g] "Left joins a constraint onto a result. Arguments in reverse order to dispatch on constraint type"))
+
 
 (s/defn without :- [s/Any]
   "Returns a sequence minus a specific element"
@@ -16,15 +21,6 @@
    s :- [s/Any]]
   (remove (partial = e) s))
 
-(s/defn vars :- [Symbol]
-  "Return a seq of all variables in a pattern"
-  [pattern :- EPVPattern]
-  (filter mem/vartest? pattern))
-
-(s/defn vars-set :- #{Symbol}
-  "Return a set of all variables in a pattern"
-  [pattern :- EPVPattern]
-  (into #{} (vars pattern)))
 
 (s/defn paths :- [[EPVPattern]]
   "Returns a seq of all paths through the constraints. A path is defined
@@ -40,7 +36,7 @@
    (apply concat
           (keep    ;; discard paths that can't proceed (they return nil)
            (fn [p]
-             (let [b (vars-set p)]
+             (let [b (get-vars p)]
                ;; only proceed when the pattern matches what has been bound
                (if (or (empty? bound) (seq (set/intersection b bound)))
                  ;; pattern can be added to the path, get the other patterns
@@ -53,15 +49,9 @@
                      [[p]])))))
            patterns))))
 
+
 (def epv-pattern? vector?)
 (def filter-pattern? list?)
-
-(defn get-vars
-  "Gets the vars from a pattern. Lists should already have vars in their metadata"
-  [fltr]
-  (if (epv-pattern? fltr)
-    (into #{} (filter symbol? fltr))
-    (:vars (meta fltr))))
 
 (s/defn merge-filters
   "Merges filters into the sequence of patterns, so that they appear
@@ -124,7 +114,7 @@
           (seq
            (keep-indexed
             (fn [nf vf]
-              (if (and (mem/vartest? vf) (= vt vf))
+              (if (and (st/vartest? vf) (= vt vf))
                 [nf nt]))
             from))))
        (apply concat)
@@ -145,13 +135,13 @@
                    v))
                pattern))
 
-(s/defn left-join :- Results
+(s/defn pattern-left-join :- Results
   "Takes a partial result, and joins on the resolution of a pattern"
   [graph
    part :- Results
    pattern :- EPVPattern]
   (let [cols (:cols (meta part))
-        total-cols (->> (vars pattern)
+        total-cols (->> (st/vars pattern)
                         (remove (set cols))
                         (concat cols)
                         (into []))
@@ -164,13 +154,36 @@
         (concat lrow rrow))
       {:cols total-cols})))
 
+(s/defn filter-join
+  "Filters down results."
+  [graph
+   part :- Results
+   fltr :- FilterPattern]
+  part)
+
+
+;; protocol dispatch for patterns and filters in queries
+(extend-protocol Constraint
+  ;; EPVPatterns are implemented in vectors
+  IPersistentVector
+  (get-vars [p] (into #{} (st/vars p)))
+
+  (left-join [p results graph] (pattern-left-join graph results p))
+
+  ;; Filters are implemented in lists
+  IPersistentList
+  (get-vars [f] (:vars (meta f)))
+
+  (left-join [f results graph] (filter-join graph results f)))
+
+
 (s/defn join-patterns :- Results
   "Joins the resolutions for a series of patterns into a single result."
   [graph
    patterns :- [Pattern]
    & options]
-  (let [epv-patterns (filter vector? patterns)
-        filter-patterns (filter list? patterns)
+  (let [epv-patterns (filter epv-pattern? patterns)
+        filter-patterns (filter filter-pattern? patterns)
 
         resolution-map (u/mapmap (fn [p]
                                    (if-let [{r :resolution} (meta p)]
@@ -187,11 +200,12 @@
         [fpath & rpath] (merge-filters planned filter-patterns)
 
         ;; execute the plan by joining left-to-right
-        ljoin (partial left-join graph)
+        ;; left-join has back-to-front params for dispatch reasons
+        ljoin #(left-join %2 %1 graph)
 
         part-result (with-meta
                       (resolution-map fpath)
-                      {:cols (vars fpath)})]
+                      {:cols (st/vars fpath)})]
 
     (reduce ljoin part-result rpath)))
 

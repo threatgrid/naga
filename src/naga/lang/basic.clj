@@ -3,7 +3,8 @@
   naga.lang.basic
   (:refer-clojure :exclude [char])
   (:require [clojure.string :as str]
-            [the.parsatron :refer :all]))
+            [the.parsatron :refer :all]
+            [naga.schema.structs :as st]))
 
 (defn choice* 
   "choice with backtracking."
@@ -128,7 +129,7 @@
   [l]
   (-> #{}
       (into (keep (comp :vars meta) l))
-      (into (filter symbol? l))))
+      (into (st/vars l))))
 
 (defparser arg-list []
   (let->> [f (elt)
