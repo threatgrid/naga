@@ -3,7 +3,7 @@
     naga.storage.memory.core
     (:require [clojure.set :as set]
               [schema.core :as s]
-              [naga.schema.structs :as st :refer [EPVPattern Results Value]]
+              [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value]]
               [naga.store :as store]
               [naga.util :as u]
               [naga.storage.memory.index :as mem])
@@ -53,12 +53,42 @@
                      [[p]])))))
            patterns))))
 
+(def epv-pattern? vector?)
+(def filter-pattern? list?)
+
+(defn get-vars
+  "Gets the vars from a pattern. Lists should already have vars in their metadata"
+  [fltr]
+  (if (epv-pattern? fltr)
+    (into #{} (filter symbol? fltr))
+    (:vars (meta fltr))))
+
+(s/defn merge-filters
+  "Merges filters into the sequence of patterns, so that they appear
+   as soon as all their variables are first bound"
+  [epv-patterns filter-patterns]
+  (let [filter-vars (u/mapmap get-vars filter-patterns)
+        all-bound-for? (fn [bound fltr] (every? bound (filter-vars fltr)))]
+    (loop [plan [] bound #{} [np & rp :as patterns] epv-patterns filters filter-patterns]
+      (if-not (seq patterns)
+        ;; no patterns left, so apply remaining filters
+        (concat plan filters)
+
+        ;; divide the filters into those which are fully bound, and the rest
+        (let [all-bound? (partial all-bound-for? bound)
+              nxt-filters (filter all-bound? filters)
+              remaining-filters (remove all-bound? filters)]
+          ;; if filters were bound, append them, else get the next EPV pattern
+          (if (seq nxt-filters)
+            (recur (into plan nxt-filters) bound patterns remaining-filters)
+            (recur (conj plan np) (into bound (get-vars np)) rp filters)))))))
+
 (s/defn min-join-path
   "Calculates a plan based on no outer joins (a cross product), and minimized joins.
    A plan is the order in which to evaluate constraints and join them to the accumulated
    evaluated data. If it is not possible to create a path without a cross product,
    then return a plan of the patterns in the provided order."
-  [patterns :- [EPVPattern]
+  [patterns :- [Pattern]
    count-map :- {EPVPattern s/Num}]
   (or
    (->> (paths patterns)
@@ -137,20 +167,24 @@
 (s/defn join-patterns :- Results
   "Joins the resolutions for a series of patterns into a single result."
   [graph
-   patterns :- [EPVPattern]
+   patterns :- [Pattern]
    & options]
-  (let [resolution-map (u/mapmap (fn [p]
+  (let [epv-patterns (filter vector? patterns)
+        filter-patterns (filter list? patterns)
+
+        resolution-map (u/mapmap (fn [p]
                                    (if-let [{r :resolution} (meta p)]
                                      r
                                      (mem/resolve-pattern graph p)))
-                                 patterns)
+                                 epv-patterns)
 
-        count-map (u/mapmap (comp count resolution-map) patterns)
+        count-map (u/mapmap (comp count resolution-map) epv-patterns)
 
         query-planner (select-planner options)
 
         ;; run the query planner
-        [fpath & rpath] (query-planner patterns count-map)
+        planned (query-planner epv-patterns count-map)
+        [fpath & rpath] (merge-filters planned filter-patterns)
 
         ;; execute the plan by joining left-to-right
         ljoin (partial left-join graph)

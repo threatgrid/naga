@@ -5,15 +5,28 @@
   (:require [the.parsatron :refer :all]
             [naga.lang.basic :refer
              [whitespace-char opt-whitespace separator open-paren close-paren
-              arg-list elt
+              get-vars arg-list elt
               choice* either*]]
             [naga.lang.expression :refer [fn-symbol relation expression]]))
+
+(defn vars-for
+  "Returns the vars of an expression"
+  [x]
+  (if (sequential? x)
+    (get-vars x)
+    (if (symbol? x) [x])))
 
 (defparser relational-expr []
   (let->> [lhs expression
            c-type (>> opt-whitespace relation)
            rhs (>> opt-whitespace expression)]
-    (always (list (fn-symbol c-type) lhs rhs))))
+    (let [vars (-> #{}
+                   (into (vars-for lhs))
+                   (into (vars-for rhs)))
+          expr (with-meta
+                 (list (fn-symbol c-type) lhs rhs)
+                 {:vars vars})]
+      (always expr))))
 
 ;; a structure is a predicate with arguments, like foo(bar)
 (defparser structure []

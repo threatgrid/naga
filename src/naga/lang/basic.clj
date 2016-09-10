@@ -123,7 +123,16 @@
 (defparser elt []
   (choice (variable) (atm)))
 
+(defn get-vars
+  "Returns all vars from an annotated list"
+  [l]
+  (-> #{}
+      (into (keep (comp :vars meta) l))
+      (into (filter symbol? l))))
+
 (defparser arg-list []
   (let->> [f (elt)
            r (many (>> separator (elt)))]
-    (always (cons f r))))
+    (let [args (cons f r)
+          vars (get-vars args)]
+      (always (with-meta args {:vars vars})))))

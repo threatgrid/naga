@@ -57,7 +57,7 @@ Parses code and returns Naga rules."
   (if (vector? ast-data)
     (let [[p args] ast-data]
       (if-let [f (and (keyword? p) (get-fn-reference p))]
-        [(cons f args)]
+        [(with-meta (cons f args) (meta args))]
         (triplets ast-data)))
     [ast-data]))
 

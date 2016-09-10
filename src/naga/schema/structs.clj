@@ -29,6 +29,11 @@
 (def RulePatternPair [(s/one s/Str "rule-name")
                       (s/one EPVPattern "pattern")])
 
+;; filters are executable lists destined for eval
+(def FilterPattern (s/pred list?))
+
+(def Pattern (s/cond-pre FilterPattern EPVPattern))
+
 (def Body [EPVPattern])
 
 (def ConstraintData
