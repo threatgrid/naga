@@ -159,7 +159,10 @@
   [graph
    part :- Results
    fltr :- FilterPattern]
-  part)
+  (let [m (meta part)
+        vars (:cols m)
+        filter-fn (eval `(fn [~vars] ~fltr))]
+    (with-meta (filter filter-fn part) m)))
 
 
 ;; protocol dispatch for patterns and filters in queries
@@ -197,7 +200,7 @@
 
         ;; run the query planner
         planned (query-planner epv-patterns count-map)
-        [fpath & rpath] (merge-filters planned filter-patterns)
+        [fpath & rpath :as plan] (merge-filters planned filter-patterns)
 
         ;; execute the plan by joining left-to-right
         ;; left-join has back-to-front params for dispatch reasons
