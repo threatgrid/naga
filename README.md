@@ -77,6 +77,18 @@ Pabu (and Prolog) uses "C" style comments:
   /* This is a comment */
 ```
 
+Any element can be given a namespace by using a colon separator. Only 1 colon may appear in an identifier.
+
+```
+  owl:SymmetricProperty(sibling).
+```
+
+To see this in use, look in pabu/family-2nd-ord.lg, and try running it:
+
+```bash
+  lein run pabu/family-2nd-ord.lg
+```
+
 ## APIs
 
 Naga defines a data access API to talk to storage. This is a Clojure protocol or Java interface
