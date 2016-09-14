@@ -73,7 +73,7 @@
             (recur (into plan nxt-filters) bound patterns remaining-filters)
             (recur (conj plan np) (into bound (get-vars np)) rp filters)))))))
 
-(s/defn min-join-path
+(s/defn min-join-path :- [EPVPattern]
   "Calculates a plan based on no outer joins (a cross product), and minimized joins.
    A plan is the order in which to evaluate constraints and join them to the accumulated
    evaluated data. If it is not possible to create a path without a cross product,
@@ -86,7 +86,7 @@
         first)
    patterns)) ;; TODO: longest paths with minimized cross products
 
-(s/defn user-plan
+(s/defn user-plan :- [EPVPattern]
   "Returns the original path specified by the user"
   [patterns :- [EPVPattern]
    _ :- {EPVPattern s/Num}]
@@ -96,7 +96,7 @@
   "Selects a query planner function"
   [options]
   (let [opt (into #{} options)]
-    (condp #(get %2 %1) opt
+    (case (get opt :planner)
       :user user-plan
       :min min-join-path
       min-join-path)))
@@ -180,11 +180,19 @@
   (left-join [f results graph] (filter-join graph results f)))
 
 
-(s/defn join-patterns :- Results
-  "Joins the resolutions for a series of patterns into a single result."
+(s/defn plan-path :- [(s/one [Pattern] "Patterns in planned order")
+                      (s/one {EPVPattern Results} "Single patterns mapped to their resolutions")]
+  "Determines the order in which to perform the elements that go into a query.
+   Tries to optimize, so it uses the graph to determine some of the
+   properties of the query elements. Options can describe which planner to use.
+   Planning will determine the resolution map, and this is returned with the plan.
+   By default the min-join-path function is used. This can be overriden with options:
+     [:planner plan]
+   The plan can be one of :user, :min.
+   :min is the default. :user means to execute in provided order."
   [graph
    patterns :- [Pattern]
-   & options]
+   options]
   (let [epv-patterns (filter epv-pattern? patterns)
         filter-patterns (filter filter-pattern? patterns)
 
@@ -200,16 +208,24 @@
 
         ;; run the query planner
         planned (query-planner epv-patterns count-map)
-        [fpath & rpath :as plan] (merge-filters planned filter-patterns)
+        plan (merge-filters planned filter-patterns)]
 
+    ;; result
+    [plan resolution-map]))
+
+
+(s/defn join-patterns :- Results
+  "Joins the resolutions for a series of patterns into a single result."
+  [graph
+   patterns :- [Pattern]
+   & options]
+  (let [[[fpath & rpath] resolution-map] (plan-path graph patterns options)
         ;; execute the plan by joining left-to-right
         ;; left-join has back-to-front params for dispatch reasons
         ljoin #(left-join %2 %1 graph)
-
         part-result (with-meta
                       (resolution-map fpath)
                       {:cols (st/vars fpath)})]
-
     (reduce ljoin part-result rpath)))
 
 

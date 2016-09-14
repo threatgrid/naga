@@ -5,6 +5,7 @@ Parses code and returns Naga rules."
   (:require [naga.schema.structs :as structs :refer [Axiom Program]]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
+            [naga.util :as u]
             [schema.core :as s])
   (:import [java.io InputStream]
            [naga.schema.structs Rule]
@@ -24,17 +25,6 @@ Parses code and returns Naga rules."
   [(s/one s/Any "entity")
    (s/one s/Any "property")
    (s/one s/Any "value")])
-
-(s/defn get-fn-reference :- (s/maybe Var)
-  "Looks up a namespace:name function represented in a keyword,
-   and if it exists, return it. Otherwise nil"
-  [kw :- s/Keyword]
-  (let [kns (namespace kw)
-        snm (symbol (name kw))]
-    (some-> kns
-      symbol
-      find-ns
-      (ns-resolve snm))))
 
 (s/defn triplets :- [Triple]
   "Converts raw parsed predicate information into a seq of triples"
@@ -56,7 +46,7 @@ Parses code and returns Naga rules."
   [ast-data]
   (if (vector? ast-data)
     (let [[p args] ast-data]
-      (if-let [f (and (keyword? p) (get-fn-reference p))]
+      (if-let [f (and (keyword? p) (u/get-fn-reference p))]
         [(with-meta (cons f args) (meta args))]
         (triplets ast-data)))
     [ast-data]))
@@ -68,8 +58,12 @@ Parses code and returns Naga rules."
 
 (def VK "Either a Variable or a Keyword" (s/cond-pre s/Keyword s/Symbol))
 
-(def Predicate [(s/one VK "property")
-                (s/one Args "arguments")])
+(def PatternPredicate [(s/one VK "property")
+                       (s/one Args "arguments")])
+
+(def ExpressionPredicate (s/pred list?))
+
+(def Predicate (s/cond-pre ExpressionPredicate PatternPredicate))
 
 (def RuleAST
   {:type (s/eq :rule)
@@ -77,10 +71,12 @@ Parses code and returns Naga rules."
           (s/one Args "arguments")]
    :body [Predicate]})
 
-(s/defn ast->rule
+(s/defn ast->rule :- Rule
   "Converts the rule structure returned from the parser"
   [{:keys [head body] :as rule-ast} :- RuleAST]
-  (r/rule (triplet head) (mapcat structure body) (-> head first name gensym name)))
+  (r/rule (triplet head)
+          (mapcat structure body)
+          (-> head first name gensym name)))
 
 (s/defn read-str :- {:rules [Rule]
                      :axioms [Axiom]}

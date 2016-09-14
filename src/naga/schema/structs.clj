@@ -41,9 +41,9 @@
 ;; filters are executable lists destined for eval
 (def FilterPattern (s/pred list?))
 
-(def Pattern (s/cond-pre FilterPattern EPVPattern))
+(def Pattern (s/if list? FilterPattern EPVPattern))
 
-(def Body [EPVPattern])
+(def Body [Pattern])
 
 (def ConstraintData
   {:last-count s/Num  ;; The count from the previous execution
@@ -72,17 +72,26 @@
      status :- {EPVPattern (s/atom ConstraintData)}
      execution-count :- (s/atom s/Num)])
 
-(defn new-rule
-  ([head body name]
+(s/defn new-rule
+  ([head :- EPVPattern
+    body :- Body
+    name :- s/Str]
    (new-rule head body name []))
-  ([head body name downstream]
+  ([head :- EPVPattern
+    body :- Body
+    name :- s/Str
+    downstream :- [RulePatternPair]]
    (new-rule head body name downstream 0))
-  ([head body name downstream salience]
+  ([head :- EPVPattern
+    body :- Body
+    name :- s/Str
+    downstream :- [RulePatternPair]
+    salience :- s/Num]
    (->Rule head body name salience downstream
            (u/mapmap (fn [_]
                        (atom {:last-count 0
                               :dirty true}))
-                     body)
+                     (remove list? body))
            (atom 0))))
 
 (def EntityPropAxiomElt
