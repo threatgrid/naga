@@ -67,9 +67,10 @@
   (reduce (fn [rqueue [rname pattern]]
             (let [{status :status :as sched-rule} (get rules rname)
                   constraint-data (get status pattern)]
-              (assert constraint-data
-                      (str "rule-constraint pair missing in rule: " rname))
-              (swap! constraint-data update-in [:dirty] true*)
+              (when-not (list? pattern)
+                (assert constraint-data
+                        (str "rule-constraint pair missing in rule: " rname))
+                (swap! constraint-data update-in [:dirty] true*))
               (q/add rqueue sched-rule)))
           remaining-queue
           downstream)) ;; contains rule-name/pattern pairs for update
