@@ -3,12 +3,17 @@
     naga.storage.memory.core
     (:require [clojure.set :as set]
               [schema.core :as s]
-              [naga.schema.structs :as st :refer [EPVPattern Results Value]]
+              [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value]]
               [naga.store :as store]
               [naga.util :as u]
               [naga.storage.memory.index :as mem])
-    (:import [clojure.lang Symbol]
+    (:import [clojure.lang Symbol IPersistentVector IPersistentList]
              [naga.store Storage]))
+
+(defprotocol Constraint
+  (get-vars [c] "Returns a seq of the vars in a constraint")
+  (left-join [c r g] "Left joins a constraint onto a result. Arguments in reverse order to dispatch on constraint type"))
+
 
 (s/defn without :- [s/Any]
   "Returns a sequence minus a specific element"
@@ -16,15 +21,6 @@
    s :- [s/Any]]
   (remove (partial = e) s))
 
-(s/defn vars :- [Symbol]
-  "Return a seq of all variables in a pattern"
-  [pattern :- EPVPattern]
-  (filter mem/vartest? pattern))
-
-(s/defn vars-set :- #{Symbol}
-  "Return a set of all variables in a pattern"
-  [pattern :- EPVPattern]
-  (into #{} (vars pattern)))
 
 (s/defn paths :- [[EPVPattern]]
   "Returns a seq of all paths through the constraints. A path is defined
@@ -40,7 +36,7 @@
    (apply concat
           (keep    ;; discard paths that can't proceed (they return nil)
            (fn [p]
-             (let [b (vars-set p)]
+             (let [b (get-vars p)]
                ;; only proceed when the pattern matches what has been bound
                (if (or (empty? bound) (seq (set/intersection b bound)))
                  ;; pattern can be added to the path, get the other patterns
@@ -53,12 +49,36 @@
                      [[p]])))))
            patterns))))
 
-(s/defn min-join-path
+
+(def epv-pattern? vector?)
+(def filter-pattern? list?)
+
+(s/defn merge-filters
+  "Merges filters into the sequence of patterns, so that they appear
+   as soon as all their variables are first bound"
+  [epv-patterns filter-patterns]
+  (let [filter-vars (u/mapmap get-vars filter-patterns)
+        all-bound-for? (fn [bound fltr] (every? bound (filter-vars fltr)))]
+    (loop [plan [] bound #{} [np & rp :as patterns] epv-patterns filters filter-patterns]
+      (if-not (seq patterns)
+        ;; no patterns left, so apply remaining filters
+        (concat plan filters)
+
+        ;; divide the filters into those which are fully bound, and the rest
+        (let [all-bound? (partial all-bound-for? bound)
+              nxt-filters (filter all-bound? filters)
+              remaining-filters (remove all-bound? filters)]
+          ;; if filters were bound, append them, else get the next EPV pattern
+          (if (seq nxt-filters)
+            (recur (into plan nxt-filters) bound patterns remaining-filters)
+            (recur (conj plan np) (into bound (get-vars np)) rp filters)))))))
+
+(s/defn min-join-path :- [EPVPattern]
   "Calculates a plan based on no outer joins (a cross product), and minimized joins.
    A plan is the order in which to evaluate constraints and join them to the accumulated
    evaluated data. If it is not possible to create a path without a cross product,
    then return a plan of the patterns in the provided order."
-  [patterns :- [EPVPattern]
+  [patterns :- [Pattern]
    count-map :- {EPVPattern s/Num}]
   (or
    (->> (paths patterns)
@@ -66,7 +86,7 @@
         first)
    patterns)) ;; TODO: longest paths with minimized cross products
 
-(s/defn user-plan
+(s/defn user-plan :- [EPVPattern]
   "Returns the original path specified by the user"
   [patterns :- [EPVPattern]
    _ :- {EPVPattern s/Num}]
@@ -76,7 +96,7 @@
   "Selects a query planner function"
   [options]
   (let [opt (into #{} options)]
-    (condp #(get %2 %1) opt
+    (case (get opt :planner)
       :user user-plan
       :min min-join-path
       min-join-path)))
@@ -94,7 +114,7 @@
           (seq
            (keep-indexed
             (fn [nf vf]
-              (if (and (mem/vartest? vf) (= vt vf))
+              (if (and (st/vartest? vf) (= vt vf))
                 [nf nt]))
             from))))
        (apply concat)
@@ -115,13 +135,13 @@
                    v))
                pattern))
 
-(s/defn left-join :- Results
+(s/defn pattern-left-join :- Results
   "Takes a partial result, and joins on the resolution of a pattern"
   [graph
    part :- Results
    pattern :- EPVPattern]
   (let [cols (:cols (meta part))
-        total-cols (->> (vars pattern)
+        total-cols (->> (st/vars pattern)
                         (remove (set cols))
                         (concat cols)
                         (into []))
@@ -134,31 +154,78 @@
         (concat lrow rrow))
       {:cols total-cols})))
 
-(s/defn join-patterns :- Results
-  "Joins the resolutions for a series of patterns into a single result."
+(s/defn filter-join
+  "Filters down results."
   [graph
-   patterns :- [EPVPattern]
-   & options]
-  (let [resolution-map (u/mapmap (fn [p]
+   part :- Results
+   fltr :- FilterPattern]
+  (let [m (meta part)
+        vars (:cols m)
+        filter-fn (eval `(fn [~vars] ~fltr))]
+    (with-meta (filter filter-fn part) m)))
+
+
+;; protocol dispatch for patterns and filters in queries
+(extend-protocol Constraint
+  ;; EPVPatterns are implemented in vectors
+  IPersistentVector
+  (get-vars [p] (into #{} (st/vars p)))
+
+  (left-join [p results graph] (pattern-left-join graph results p))
+
+  ;; Filters are implemented in lists
+  IPersistentList
+  (get-vars [f] (:vars (meta f)))
+
+  (left-join [f results graph] (filter-join graph results f)))
+
+
+(s/defn plan-path :- [(s/one [Pattern] "Patterns in planned order")
+                      (s/one {EPVPattern Results} "Single patterns mapped to their resolutions")]
+  "Determines the order in which to perform the elements that go into a query.
+   Tries to optimize, so it uses the graph to determine some of the
+   properties of the query elements. Options can describe which planner to use.
+   Planning will determine the resolution map, and this is returned with the plan.
+   By default the min-join-path function is used. This can be overriden with options:
+     [:planner plan]
+   The plan can be one of :user, :min.
+   :min is the default. :user means to execute in provided order."
+  [graph
+   patterns :- [Pattern]
+   options]
+  (let [epv-patterns (filter epv-pattern? patterns)
+        filter-patterns (filter filter-pattern? patterns)
+
+        resolution-map (u/mapmap (fn [p]
                                    (if-let [{r :resolution} (meta p)]
                                      r
                                      (mem/resolve-pattern graph p)))
-                                 patterns)
+                                 epv-patterns)
 
-        count-map (u/mapmap (comp count resolution-map) patterns)
+        count-map (u/mapmap (comp count resolution-map) epv-patterns)
 
         query-planner (select-planner options)
 
         ;; run the query planner
-        [fpath & rpath] (query-planner patterns count-map)
+        planned (query-planner epv-patterns count-map)
+        plan (merge-filters planned filter-patterns)]
 
+    ;; result
+    [plan resolution-map]))
+
+
+(s/defn join-patterns :- Results
+  "Joins the resolutions for a series of patterns into a single result."
+  [graph
+   patterns :- [Pattern]
+   & options]
+  (let [[[fpath & rpath] resolution-map] (plan-path graph patterns options)
         ;; execute the plan by joining left-to-right
-        ljoin (partial left-join graph)
-
+        ;; left-join has back-to-front params for dispatch reasons
+        ljoin #(left-join %2 %1 graph)
         part-result (with-meta
                       (resolution-map fpath)
-                      {:cols (vars fpath)})]
-
+                      {:cols (st/vars fpath)})]
     (reduce ljoin part-result rpath)))
 
 

@@ -5,9 +5,11 @@ Parses code and returns Naga rules."
   (:require [naga.schema.structs :as structs :refer [Axiom Program]]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
+            [naga.util :as u]
             [schema.core :as s])
   (:import [java.io InputStream]
-           [naga.schema.structs Rule]))
+           [naga.schema.structs Rule]
+           [clojure.lang Var]))
 
 ;; TODO: Multi-arity not yet supported
 (def Args
@@ -24,11 +26,30 @@ Parses code and returns Naga rules."
    (s/one s/Any "property")
    (s/one s/Any "value")])
 
-(s/defn triplet :- Triple
+(s/defn triplets :- [Triple]
+  "Converts raw parsed predicate information into a seq of triples"
   [[property [s o :as args]]]
-  (if (= 1 (count args))
-    [s :rdf/type property]
-    [s property o]))
+  (case (count args)
+    0 [[s :rdf/type :owl/thing]]
+    1 [[s :rdf/type property]]
+    2 [[s property o]]
+    (throw (ex-info "Multi-arity predicates not yet supported"))))
+
+(s/defn triplet :- Triple
+  "Converts raw parsed predicate information into a single triple"
+  [raw]
+  (first (triplets raw)))
+
+(defn structure
+  "Converts the AST for a structure into either a seq of triplets or predicates.
+   Types are intentionally loose, since it's either a pair or a list."
+  [ast-data]
+  (if (vector? ast-data)
+    (let [[p args] ast-data]
+      (if-let [f (and (keyword? p) (u/get-fn-reference p))]
+        [(with-meta (cons f args) (meta args))]
+        (triplets ast-data)))
+    [ast-data]))
 
 (s/defn ast->axiom :- Axiom
   "Converts the axiom structure returned from the parser"
@@ -37,8 +58,12 @@ Parses code and returns Naga rules."
 
 (def VK "Either a Variable or a Keyword" (s/cond-pre s/Keyword s/Symbol))
 
-(def Predicate [(s/one VK "property")
-                (s/one Args "arguments")])
+(def PatternPredicate [(s/one VK "property")
+                       (s/one Args "arguments")])
+
+(def ExpressionPredicate (s/pred list?))
+
+(def Predicate (s/cond-pre ExpressionPredicate PatternPredicate))
 
 (def RuleAST
   {:type (s/eq :rule)
@@ -46,10 +71,12 @@ Parses code and returns Naga rules."
           (s/one Args "arguments")]
    :body [Predicate]})
 
-(s/defn ast->rule
+(s/defn ast->rule :- Rule
   "Converts the rule structure returned from the parser"
   [{:keys [head body] :as rule-ast} :- RuleAST]
-  (r/rule (triplet head) (map triplet body) (-> head first name gensym name)))
+  (r/rule (triplet head)
+          (mapcat structure body)
+          (-> head first name gensym name)))
 
 (s/defn read-str :- {:rules [Rule]
                      :axioms [Axiom]}
