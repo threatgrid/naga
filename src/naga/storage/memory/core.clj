@@ -196,10 +196,7 @@
   (let [epv-patterns (filter epv-pattern? patterns)
         filter-patterns (filter filter-pattern? patterns)
 
-        resolution-map (u/mapmap (fn [p]
-                                   (if-let [{r :resolution} (meta p)]
-                                     r
-                                     (mem/resolve-pattern graph p)))
+        resolution-map (u/mapmap (partial mem/resolve-pattern graph)
                                  epv-patterns)
 
         count-map (u/mapmap (comp count resolution-map) epv-patterns)
@@ -255,6 +252,10 @@
   
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
+
+  ;; TODO: cache by this
+  (count-pattern [_ pattern]
+    (count (mem/resolve-pattern graph pattern)))
 
   (query [_ output-pattern patterns]
     (->> (join-patterns graph patterns)

@@ -6,6 +6,7 @@
   Storage
   (start-tx [store] store)
   (commit-tx [store] store)
+  (count-pattern [store pattern] (count data))
   (resolve-pattern [store pattern] data)
   (query [store output-pattern patterns] data)
   (assert-data [store new-data]

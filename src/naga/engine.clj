@@ -25,34 +25,32 @@
     p))
 
 
-(s/defn resolve-pattern :- (s/maybe EPVPattern)
+(s/defn resolve-count :- (s/maybe EPVPattern)
   "Resolve a pattern against storage, and set the :resolution meta
   data if the result is different from the last resolution.  Requires
   a status map in order to lookup the last-count."
   [storage :- Storage
    status :- StatusMap
    p :- EPVPattern]
-  (let [resolution (store/resolve-pattern storage p)
+  (let [resolution-count (store/count-pattern storage p)
         last-count (:last-count @(get status p))]
-    (when-not (= last-count (count resolution))
-      (with-meta p {:resolution resolution}))))
+    (when-not (= last-count resolution-count)
+      (with-meta p {:count resolution-count}))))
 
 
 (s/defn mark-rule-cleaned-with-latest-count!
   "Reset the pattern status, making it clean.  Uses meta from
-   resolve-pattern (above). Result should be ignored."
+   resolve-count (above). Result should be ignored."
   [dirty-patterns :- [EPVPattern]
-   resolved-set :- #{EPVPattern}
+   counted-set :- #{EPVPattern}
    status :- StatusMap]
   (doseq [dp dirty-patterns]
-    (let [{r :resolution} (if-let [rp (get resolved-set dp)]
-                            (meta rp))
+    (let [{c :count} (if-let [cp (get counted-set dp)]
+                       (meta cp))
 
           pattern-status (get status dp)]
       (reset! pattern-status
-              {:last-count (if r
-                             (count r)
-                             (:last-count @pattern-status))
+              {:last-count (or c (:last-count @pattern-status))
                :dirty false}))))
 
 
@@ -101,19 +99,19 @@
           (if-let [dirty-patterns (seq (keep extract-dirty-pattern
                                              status))]
             ;; rule needs to be run
-            (let [resolved-patterns (keep (partial resolve-pattern storage status)
+            (let [counted-patterns (keep (partial resolve-count storage status)
                                           dirty-patterns)
 
-                  resolved-set (into #{} resolved-patterns)
+                  counted-set (into #{} counted-patterns)
 
-                  hinted-patterns (map #(get resolved-set % %) body)]
+                  hinted-patterns (map #(get counted-set % %) body)]
 
               (mark-rule-cleaned-with-latest-count! dirty-patterns
-                                                    resolved-set
+                                                    counted-set
                                                     status)
 
               ;; is there a NEW result to be had?
-              (if (seq resolved-patterns)
+              (if (seq counted-patterns)
                 ;; TODO: EXECUTE ACTIONS FOR ACTION RULES
                 ;; (if (= rule-type :action)
                 ;;   (if-let [data (seq (store/query storage head hinted-patterns))]
