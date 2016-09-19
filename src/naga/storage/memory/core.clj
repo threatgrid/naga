@@ -2,6 +2,7 @@
       :author "Paula Gearon"}
     naga.storage.memory.core
     (:require [clojure.set :as set]
+              [clojure.core.cache :as c]
               [schema.core :as s]
               [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value]]
               [naga.store :as store]
@@ -244,6 +245,20 @@
    data :- Results]
   (reduce (fn [acc d] (apply mem/graph-add acc d)) graph data))
 
+;; Using a cache of 1 is currently redundant to an atom
+(let [m (atom (c/lru-cache-factory {} :threshold 1))]
+  (defn get-count-fn
+    "Returns a memoized counting function for the current graph.
+     These functions only last as long as the current graph."
+    [graph]
+    (if-let [f (c/lookup @m graph)]
+      (do
+        (swap! m c/hit graph)
+        f)
+      (let [f (memoize #(count (mem/resolve-pattern graph %)))]
+        (swap! m c/miss graph f)
+        f))))
+
 (defrecord MemoryStore [graph]
   Storage
   (start-tx [this] this)
@@ -253,9 +268,10 @@
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 
-  ;; TODO: cache by this
   (count-pattern [_ pattern]
-    (count (mem/resolve-pattern graph pattern)))
+    (if-let [count-fn (get-count-fn graph)]
+      (count-fn pattern)
+      (count (mem/resolve-pattern graph pattern))))
 
   (query [_ output-pattern patterns]
     (->> (join-patterns graph patterns)
