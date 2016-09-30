@@ -252,7 +252,16 @@
   (start-tx [this] this)
 
   (commit-tx [this] this)
+
+  (new-node [this]
+    (->> "node-"
+        gensym
+        name
+        (keyword "mem")))
   
+  (data-property [_ data]
+    :naga/first)
+
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 

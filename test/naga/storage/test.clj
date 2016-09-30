@@ -6,6 +6,8 @@
   Storage
   (start-tx [store] store)
   (commit-tx [store] store)
+  (new-node [store] :node)
+  (data-property [store data] :naga/first)
   (resolve-pattern [store pattern] data)
   (query [store output-pattern patterns] data)
   (assert-data [store new-data]
