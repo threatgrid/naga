@@ -68,7 +68,6 @@
   [storage io]
   (with-open [r (io/reader io)]
     (let [data (j/parse-stream r true)]
-      ;; need to doall this, so the reader does not get closed over the lazy mapcat
       (json->triples storage data))))
 
 
