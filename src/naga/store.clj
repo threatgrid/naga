@@ -6,6 +6,7 @@
   (start-tx [store] "Starts a transaction, if supported")
   (commit-tx [store] "Commits a transaction, if supported")
   (new-node [store] "Allocates a node for the store")
+  (node-type? [store p n] "Returns true if the value refered to by a property can be a graph node")
   (data-property [store data] "Returns the property to use for given data")
   (resolve-pattern [store pattern] "Resolves a pattern against storage")
   (query [store output-pattern patterns] "Resolves a set of patterns (if not already resolved) and joins the results")

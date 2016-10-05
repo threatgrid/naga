@@ -4,7 +4,7 @@
   (:require [schema.core :as s :refer [=>]]
             [clojure.java.io :as io]
             [cheshire.core :as j]
-            [naga.store :as store])
+            [naga.store :as store :refer [Storage]])
   (:import [java.util Map List]))
 
 (def ^:dynamic *current-storage* nil)
@@ -73,5 +73,80 @@
 
 (s/defn string->triples :- [[s/Any s/Keyword s/Any]]
   "Converts a string to triples relevant to a store"
-  [storage s]
+  [storage :- Storage
+   s :- s/Str]
   (json->triples storage (j/parse-string s true)))
+
+
+;; extracting from the store
+
+
+(s/defn property-values :- [[s/Keyword s/Any]]
+  "Return all the property/value pairs for a given entity in the store."
+  [store :- Storage
+   entity :- s/Any]
+  (store/resolve-pattern store [entity '?p '?o]))
+
+
+(s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
+  "Determines if a value represents a structure. If so, return the property/values for it.
+   Otherwise, return nil."
+  [store :- Storage
+   prop :- s/Any
+   v :- s/Any]
+  (if (store/node-type? store prop v)
+    (let [data (property-values store v)]
+      (seq data))))
+
+
+(declare pairs->json)
+
+
+(s/defn build-list
+  "Takes property/value pairs and if they represent a list node, returns the list.
+   else, nil."
+  [store :- Storage
+   [[fprop fval] [sprop sval] :as pairs] :- [[s/Keyword s/Any]]]
+  (letfn [(build [untested-prop elt rem-list]
+             (assert (= :naga/rest untested-prop))
+             (cons elt (build-list store (property-values store rem-list))))]
+    (if (= :naga/first fprop)
+      (build sprop fval sval)
+      (build fprop sval fval))))
+
+
+(s/defn recurse-node :- s/Any
+  "Determines if the val of a map entry is a node to be recursed on, and loads if necessary"
+  [store :- Storage
+   [prop v] :- [s/Keyword s/Any]]
+  (if-let [pairs (check-structure store prop v)]
+    (or (build-list store pairs)
+        (pairs->json store pairs))
+    v))
+
+
+(s/defn id->json :- {s/Keyword s/Any}
+  "Uses a set of property-value pairs to load up a nested data structure from the graph"
+  [store :- Storage
+   prop-vals :- [s/Any s/Any]]
+  (->> prop-vals
+       (map (partial recurse-node store))
+       (into {})))
+
+
+(s/defn pairs->json :- {s/Keyword s/Any}
+  "Uses an id node to load up a nested data structure from the graph"
+  [store :- Storage
+   entity :- s/Any]
+  (id->json store entity (property-values store entity)))
+
+
+(s/defn ident->json :- {s/Keyword s/Any}
+  "Converts data in a database to data structures suitable for JSON encoding"
+  [store :- Storage
+   ident :- s/Any]
+  ;; find the entity by its ident. Some systems will make the id the entity id,
+  ;; and the ident will be separate, so look for both.
+  (let [eid (or (ffirst (store/resolve-pattern store '[?eid :db/id ident]))
+                (ffirst (store/resolve-pattern store '[?eid :db/ident ident])))]
+    (id->json store eid)))

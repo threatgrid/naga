@@ -9,6 +9,9 @@
   (new-node [store]
     (let [v (swap! n inc)]
       (keyword "test" (str "n" v))))
+  (node-type? [store p n] (and (keyword? n)
+                               (= "test" (namespace n))
+                               (= \n (first (name n)))))
   (data-property [store data] :naga/first)
   (resolve-pattern [store pattern] data)
   (query [store output-pattern patterns] data)
