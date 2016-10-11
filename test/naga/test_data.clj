@@ -22,19 +22,26 @@
                                  "    {\"a\": 2},"
                                  "    [\"nested\"]"
                                  "]}]"))]
-    (is (= [[:test/n1 :prop "val"]] m1))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1] [:test/n1 :prop "val"]] m1))
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
             [:test/n2 :naga/first 42]
             [:test/n2 :naga/rest :test/n3]
             [:test/n3 :naga/first 54]
-            [:test/n3 :naga/rest :naga/nil]] m3))
-    (is (= [[:test/n1 :prop "val"]
+            [:test/n3 :naga/rest :naga/nil]
+            [:test/n2 :naga/contains 42]
+            [:test/n2 :naga/contains 54]] m3))
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :prop "val"]
+            [:test/n2 :db/ident :test/n2]
             [:test/n2 :prop "val2"]] m4))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
             [:test/n2 :naga/rest :test/n4]
@@ -45,7 +52,11 @@
             [:test/n6 :naga/first :test/n7]
             [:test/n6 :naga/rest :naga/nil]
             [:test/n7 :naga/first "nested"]
-            [:test/n7 :naga/rest :naga/nil]] m5))))
+            [:test/n7 :naga/rest :naga/nil]
+            [:test/n7 :naga/contains "nested"]
+            [:test/n2 :naga/contains :test/n3]
+            [:test/n2 :naga/contains :test/n5]
+            [:test/n2 :naga/contains :test/n7]] m5))))
 
 (deftest test-encode
   (let [m1 (json->triples (st/new-store)
@@ -59,19 +70,26 @@
         m5 (json->triples (st/new-store)
                           [{:prop "val"
                             :arr [{:a 1} {:a 2} ["nested"]]}])]
-    (is (= [[:test/n1 :prop "val"]] m1))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1] [:test/n1 :prop "val"]] m1))
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
             [:test/n2 :naga/first 42]
             [:test/n2 :naga/rest :test/n3]
             [:test/n3 :naga/first 54]
-            [:test/n3 :naga/rest :naga/nil]] m3))
-    (is (= [[:test/n1 :prop "val"]
+            [:test/n3 :naga/rest :naga/nil]
+            [:test/n2 :naga/contains 42]
+            [:test/n2 :naga/contains 54]] m3))
+    (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :prop "val"]
+            [:test/n2 :db/ident :test/n2] 
             [:test/n2 :prop "val2"]] m4))
-    (is (= [[:test/n1 :prop "val"]
+    (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
             [:test/n2 :naga/rest :test/n4]
@@ -82,4 +100,8 @@
             [:test/n6 :naga/first :test/n7]
             [:test/n6 :naga/rest :naga/nil]
             [:test/n7 :naga/first "nested"]
-            [:test/n7 :naga/rest :naga/nil]] m5))))
+            [:test/n7 :naga/rest :naga/nil]
+            [:test/n7 :naga/contains "nested"]
+            [:test/n2 :naga/contains :test/n3]
+            [:test/n2 :naga/contains :test/n5]
+            [:test/n2 :naga/contains :test/n7]] m5))))
