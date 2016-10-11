@@ -13,6 +13,7 @@
                                (= "test" (namespace n))
                                (= \n (first (name n)))))
   (data-property [store data] :naga/first)
+  (container-property [store data] :naga/contains)
   (resolve-pattern [store pattern] data)
   (query [store output-pattern patterns] data)
   (assert-data [store new-data]

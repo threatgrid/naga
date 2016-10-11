@@ -3,11 +3,28 @@
     naga.data
   (:require [schema.core :as s :refer [=>]]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [cheshire.core :as j]
             [naga.store :as store :refer [Storage]])
   (:import [java.util Map List]))
 
 (def ^:dynamic *current-storage* nil)
+
+(s/defn containership-triples
+  "Finds the list of entity nodes referred to in a list and builds
+   triples describing a flat 'contains' property"
+  [node :- s/Any
+   triples :- [[s/Any s/Keyword s/Any]]]
+  (let [listmap (->> (group-by first triples)
+                     (map (fn [[k vs]]
+                            [k (into {} (map #(apply vector (rest %)) vs))]))
+                     (into {}))
+        node-list (loop [nl [] n node]
+                    (if (= :naga/nil n)
+                      nl
+                      (let [{f :naga/first r :naga/rest} (listmap n)]
+                        (recur (conj nl f) r))))]
+    (map (fn [n] [node (store/container-property *current-storage* n) n]) node-list)))
 
 (defmulti value-triples
   "Converts a value into a list of triples.
@@ -18,17 +35,25 @@
 
 (declare map->triples)
 
-(defmethod value-triples List
+(s/defn list-triples
+  "Creates the triples for a list"
   [[v & vs :as vlist]]
   (if (seq vlist)
     (let [id (store/new-node *current-storage*)
           [value-id triples] (value-triples v)
-          [next-id next-triples] (value-triples vs)]
-      [id (concat [[id :naga/first value-id]
+          [next-id next-triples] (list-triples vs)]
+      [id (concat [[id (store/data-property *current-storage* value-id) value-id]
                    [id :naga/rest next-id]]
                   triples
                   next-triples)])
     [:naga/nil nil]))
+
+(defmethod value-triples List
+  [vlist]
+  (let [[node triples :as raw-result] (list-triples vlist)]
+    (if triples
+      [node (concat triples (containership-triples node triples))]
+      raw-result)))
 
 (defmethod value-triples Map      [v] (map->triples v))
 
@@ -47,7 +72,7 @@
 
 
 (s/defn map->triples :- [s/Any [[s/Any s/Keyword s/Any]]]
-  "Converts a single map to triples"
+  "Converts a single map to triples. Returns a pair of the map's ID and the triples for the map."
   [data :- {s/Any s/Any}]
   (let [entity-id (or (:db/id data) (store/new-node *current-storage*))
         triples-data (mapcat (partial property-vals entity-id)
@@ -55,12 +80,29 @@
     [entity-id triples-data]))
 
 
+(s/defn name-for
+  "Convert an id (probably a number) to a keyword for identification"
+  [id :- s/Any]
+  (if (keyword? id)
+    id
+    (keyword "naga" (str "id-" id))))
+
+
+(s/defn ident-map->triples :- [s/Any [[s/Any s/Keyword s/Any]]]
+  "Converts a single map to triples for an ID'ed map"
+  [j]
+  (let [[id triples] (map->triples j)]
+    (if (:db/ident j)
+      triples
+      (cons [id :db/ident (name-for id)] triples))))
+
+
 (s/defn json->triples
   "Converts parsed JSON into a sequence of triples for a provided storage."
   [storage j]
   (binding [*current-storage* storage]
-    (doall (mapcat second
-                   (map map->triples j)))))
+    (doall (apply concat
+                   (map ident-map->triples j)))))
 
 
 (s/defn stream->triples :- [[s/Any s/Keyword s/Any]]
@@ -85,7 +127,8 @@
   "Return all the property/value pairs for a given entity in the store."
   [store :- Storage
    entity :- s/Any]
-  (store/resolve-pattern store [entity '?p '?o]))
+  (if-not (= entity :naga/nil)
+    (store/resolve-pattern store [entity '?p '?o])))
 
 
 (s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
@@ -101,18 +144,28 @@
 
 (declare pairs->json)
 
+(s/defn get-data
+  "Finds the naga/first property, in a map, and gets the value."
+  [m :- {s/Keyword s/Any}]
+  (->> m
+       (filter (fn [[k v]] (and (= "naga" (namespace k))
+                                (str/includes? (name k) "first"))))
+       first
+       second))
 
 (s/defn build-list
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
   [store :- Storage
-   [[fprop fval] [sprop sval] :as pairs] :- [[s/Keyword s/Any]]]
-  (letfn [(build [untested-prop elt rem-list]
-             (assert (= :naga/rest untested-prop))
-             (cons elt (build-list store (property-values store rem-list))))]
-    (if (= :naga/first fprop)
-      (build sprop fval sval)
-      (build fprop sval fval))))
+   pairs :- [[s/Keyword s/Any]]]
+  ;; convert the data to a map
+  (let [st (into {} pairs)]
+    ;; if the properties indicate a list, then process it
+    (if-let [remaining (:naga/rest st)]
+      (let [first-elt (get-data st)]
+        (assert first-elt)
+        ;; recursively build the list
+        (cons first-elt (build-list store (property-values store remaining)))))))
 
 
 (s/defn recurse-node :- s/Any
@@ -125,20 +178,22 @@
     v))
 
 
-(s/defn id->json :- {s/Keyword s/Any}
+(s/defn pairs->json :- {s/Keyword s/Any}
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- Storage
-   prop-vals :- [s/Any s/Any]]
-  (->> prop-vals
-       (map (partial recurse-node store))
-       (into {})))
+   prop-vals :- [s/Keyword s/Any]]
+  (->
+   (->> prop-vals
+        (map (partial recurse-node store))
+        (into {}))
+   (dissoc :db/id :db/ident)))
 
 
-(s/defn pairs->json :- {s/Keyword s/Any}
+(s/defn id->json :- {s/Keyword s/Any}
   "Uses an id node to load up a nested data structure from the graph"
   [store :- Storage
-   entity :- s/Any]
-  (id->json store entity (property-values store entity)))
+   entity-id :- s/Any]
+  (pairs->json store (property-values store entity-id)))
 
 
 (s/defn ident->json :- {s/Keyword s/Any}
@@ -150,3 +205,15 @@
   (let [eid (or (ffirst (store/resolve-pattern store '[?eid :db/id ident]))
                 (ffirst (store/resolve-pattern store '[?eid :db/ident ident])))]
     (id->json store eid)))
+
+(s/defn store->json :- [{s/Keyword s/Any}]
+  "Pulls all top level JSON out of a store"
+  [store :- Storage]
+  (->> (store/resolve-pattern store '[?e :db/ident ?id])
+       (map first)
+       (map (partial id->json store))))
+
+(s/defn store->str :- s/Str
+  "Reads a store into JSON strings"
+  [store :- Storage]
+  (j/generate-string (store->json store)))
