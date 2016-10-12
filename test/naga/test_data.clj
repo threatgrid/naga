@@ -1,7 +1,9 @@
 (ns naga.test-data
   (:require [clojure.test :refer :all]
             [naga.data :refer :all]
-            [naga.storage.test :as st]))
+            [naga.storage.test :as st]
+            [naga.store :as store]
+            [naga.storage.memory.core :refer [empty-store]]))
 
 (deftest test-encode-from-string
   (let [m1 (string->triples (st/new-store)
@@ -105,3 +107,30 @@
             [:test/n2 :naga/contains :test/n3]
             [:test/n2 :naga/contains :test/n5]
             [:test/n2 :naga/contains :test/n7]] m5))))
+
+(defn round-trip
+  [data]
+  (let [m (json->triples empty-store data)
+        new-db (store/assert-data empty-store m)]
+    (store->json new-db)))
+
+(deftest test-round-trip
+  (let [d1 [{:prop "val"}]
+        dr1 (round-trip d1)
+
+        d2 [{:prop "val", :p2 2}]
+        dr2 (round-trip d2)
+
+        d3 [{:prop "val", :p2 22, :p3 [42 54]}]
+        dr3 (round-trip d3)
+
+        d4 [{:prop "val"} {:prop "val2"}]
+        dr4 (round-trip d4)
+
+        d5 [{:prop "val" :arr [{:a 1} {:a 2} ["nested"]]}]
+        dr5 (round-trip d5)]
+    (is (= d1 dr1))
+    (is (= d2 dr2))
+    (is (= d3 dr3))
+    (is (= d4 dr4))
+    (is (= d5 dr5))))

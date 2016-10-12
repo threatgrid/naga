@@ -137,12 +137,12 @@
   [store :- Storage
    prop :- s/Any
    v :- s/Any]
-  (if (store/node-type? store prop v)
+  (if (and (not (#{:db/ident :db/id} prop)) (store/node-type? store prop v))
     (let [data (property-values store v)]
       (seq data))))
 
 
-(declare pairs->json)
+(declare pairs->json recurse-node)
 
 (s/defn get-data
   "Finds the naga/first property, in a map, and gets the value."
@@ -150,10 +150,9 @@
   (->> m
        (filter (fn [[k v]] (and (= "naga" (namespace k))
                                 (str/includes? (name k) "first"))))
-       first
-       second))
+       first))
 
-(s/defn build-list
+(s/defn build-list :- [s/Any]
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
   [store :- Storage
@@ -162,7 +161,8 @@
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
     (if-let [remaining (:naga/rest st)]
-      (let [first-elt (get-data st)]
+      (let [first-prop-elt (get-data st)
+            [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
         (cons first-elt (build-list store (property-values store remaining)))))))
@@ -171,17 +171,17 @@
 (s/defn recurse-node :- s/Any
   "Determines if the val of a map entry is a node to be recursed on, and loads if necessary"
   [store :- Storage
-   [prop v] :- [s/Keyword s/Any]]
+   [prop v :as prop-val] :- [s/Keyword s/Any]]
   (if-let [pairs (check-structure store prop v)]
-    (or (build-list store pairs)
-        (pairs->json store pairs))
-    v))
+    [prop (or (build-list store pairs)
+              (pairs->json store pairs))]
+    prop-val))
 
 
 (s/defn pairs->json :- {s/Keyword s/Any}
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- Storage
-   prop-vals :- [s/Keyword s/Any]]
+   prop-vals :- [[s/Keyword s/Any]]]
   (->
    (->> prop-vals
         (map (partial recurse-node store))
