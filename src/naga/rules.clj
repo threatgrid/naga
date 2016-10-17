@@ -24,11 +24,29 @@
    {:keys [head body salience downstream]} :- s/Str]
   (st/new-rule head body name downstream salience))
 
+(defn- resolve-element
+  "Takes a keyword or a symbol and resolve it as a function.
+   Only namespaced keywords get converted.
+   Symbols default to the clojure.core namespace when no namespace is present.
+   Symbols starting with ? are not converted.
+   Anything unresolvable is not converted."
+  [e]
+  (or (cond
+        (keyword? e) (u/get-fn-reference e)
+        (symbol? e) (cond
+                      (namespace e) (u/get-fn-reference e)
+                      (= \? (first (name e))) e
+                      :default (u/get-fn-reference
+                                (symbol "clojure.core" (name e)))))
+      e))
+
 (defn- de-ns
   "Remove namespaces from symbols in a pattern"
   [pattern]
-  (letfn [(clean [e] (if (symbol? e) (symbol (name e)) e))]
-    (apply vector (map clean pattern))))
+  (if (vector? pattern)
+    (letfn [(clean [e] (if (symbol? e) (symbol (name e)) e))]
+      (apply vector (map clean pattern)))
+    (map resolve-element pattern)))
 
 (defmacro r
   "Create a rule, with an optional name.

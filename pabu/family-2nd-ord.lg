@@ -2,11 +2,15 @@ sibling(fred, barney).
 parent(fred, mary).
 sibling(mary, george).
 gender(george, male).
+/* Using the OWL namespace to describe the sibling property */
+owl:SymmetricProperty(sibling).
 
 parent(B, C) :- sibling(A, B), parent(A, C).
 brother(A, B) :- sibling(A, B), gender(B, male).
 uncle(A, C) :- parent(A, B), brother(B, C).
-sibling(A, B) :- parent(A, P), parent(B, P), A != B.
 gender(F, male) :- father(A, F).
 parent(A, F) :- father(A, F).
+
+/* Implement the owl:SymmetricProperty property type */
+P(B, A) :- P(A, B), A != B, owl:SymmetricProperty(P).
 

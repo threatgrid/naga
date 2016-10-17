@@ -80,7 +80,7 @@
   "Convert a predicate triplet into a string."
   [[e p v]]
   (if (= p :rdf/type)
-    (str (nm e) "(" (nm v) ").")
+    (str (nm v) "(" (nm e) ").")
     (str (nm p) "(" (nm e) ", " (nm v) ").")))
 
 

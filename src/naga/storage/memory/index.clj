@@ -1,7 +1,8 @@
 (ns ^{:doc "A graph implementation with full indexing."
       :author "Paula Gearon"}
     naga.storage.memory.index
-    (:require [schema.core :as s]))
+  (:require [schema.core :as s]
+            [naga.schema.structs :as st]))
 
 (def ? :?)
 
@@ -27,11 +28,7 @@
                 new-idx (if (seq new-idx2) (assoc idx a new-idx2) (dissoc idx a))]
             new-idx))))))
 
-(s/defn vartest? :- s/Bool
-  [x]
-  (and (symbol? x) (= \? (first (name x)))))
-
-(defn- simplify [g & ks] (map #(if (vartest? %) ? :v) ks))
+(defn- simplify [g & ks] (map #(if (st/vartest? %) ? :v) ks))
 
 (defmulti get-from-index "Lookup an index in the graph for the requested data" simplify)
 
