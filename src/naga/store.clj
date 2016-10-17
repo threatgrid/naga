@@ -6,6 +6,7 @@
   (start-tx [store] "Starts a transaction, if supported")
   (commit-tx [store] "Commits a transaction, if supported")
   (resolve-pattern [store pattern] "Resolves a pattern against storage")
+  (count-pattern [store pattern] "Counts the size of a pattern resolition against storage")
   (query [store output-pattern patterns] "Resolves a set of patterns (if not already resolved) and joins the results")
   (assert-data [store data] "Inserts new axioms")
   (query-insert [store assertion-pattern patterns] "Resolves a set of patterns, joins them, and inserts the set of resolutions"))
