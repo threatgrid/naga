@@ -10,6 +10,7 @@
   (data-property [store data] "Returns the property to use for given data. Must be in the naga namespace, and start with 'first'.")
   (container-property [store data] "Returns the property to use to indicate a containership relation for given data. Must be in the naga namespace")
   (resolve-pattern [store pattern] "Resolves a pattern against storage")
+  (count-pattern [store pattern] "Counts the size of a pattern resolition against storage")
   (query [store output-pattern patterns] "Resolves a set of patterns (if not already resolved) and joins the results")
   (assert-data [store data] "Inserts new axioms")
   (query-insert [store assertion-pattern patterns] "Resolves a set of patterns, joins them, and inserts the set of resolutions"))
