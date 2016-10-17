@@ -45,6 +45,9 @@
 (def divide (char \/))
 (def tms (char \*))
 
+(def non-dquote (token (complement #{\"})))
+(def non-squote (token (complement #{\'})))
+
 (defn upper-case-letter?
   "Prolog considers underscores to be equivalent to an uppercase letter"
   [c]
@@ -81,13 +84,13 @@
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
-  (let->> [s (many1 (between (char \') (char \') (many (any-char)))) ]
-    (always (flatten (interpose \' s)))))
+  (let->> [s (many1 (between (char \') (char \') (many non-squote))) ]
+    (always (apply str (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
-  (let->> [s (many1 (between (char \") (char \") (many (any-char))))]
-    (always (flatten (interpose \" s)))))
+  (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
+    (always (apply str (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
 
