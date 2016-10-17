@@ -8,13 +8,22 @@
             [naga.rules :as r]
             [naga.engine :as e]
             [naga.store :as store]
-            [naga.storage.memory.core]))
+            [naga.data :as data]
+            [naga.storage.memory.core])
+  (:import [java.io File]))
 
 (def stores (map name (keys @store/registered-stores)))
 
+(def valid-output? #(.exists (.getParentFile (.getAbsoluteFile (File. %)))))
+(def valid-input? #(.exists (File. %)))
+
 (def cli-options
-  [["-s" "--storage" "Select store type"
+  [[nil "--storage STRING" "Select store type"
     :validate [(set stores) "Must be a registered storage type."]]
+   [nil "--json STRING" "Filename for input json"
+    :validate [valid-input? "Input file does not exist."]]
+   [nil "--output STRING" "Filename for output json"
+    :validate [valid-output? "Output directory does not exist."]]
    ["-h" "--halp" "Print help"]])
 
 (defn exit
@@ -57,13 +66,13 @@
         program (r/create-program rules [])
 
         ;; run the program
-        [store results] (e/run config program)
+        [store stats] (e/run config program)
 
         ;; dump the database by resolving an unbound constraint
         data (store/resolve-pattern store '[?e ?p ?v])]
     {:input axioms
      :output (remove (set axioms) data)
-     :stats results}))
+     :stats stats}))
 
 
 (defn- nm
@@ -83,15 +92,46 @@
     (str (nm v) "(" (nm e) ").")
     (str (nm p) "(" (nm e) ", " (nm v) ").")))
 
-
-(defn -main [& args]
-  (let [{:keys [options arguments] :as opts} (parse-opts args cli-options)]
-    (when (:halp options) (exit 1 (usage opts)))
-    (let [in-stream (if-let [filename (first arguments)]
-                      (io/input-stream filename)
-                      *in*)
-          {:keys [input output stats]} (run-all in-stream)]
+(defn logic-program
+  [in-stream]
+  (let [{:keys [input output stats]} (run-all in-stream)]
       (println "INPUT DATA") 
       (doseq [a input] (println (predicate-string a)))
       (println "\nNEW DATA")
-      (doseq [a output] (println (predicate-string a))))))
+      (doseq [a output] (println (predicate-string a)))))
+
+(defn json-program
+  "Runs a program over data in a JSON file"
+  [in-stream json-file out-file storage]
+  (let [; TODO: handle storage URIs to determine type and connection
+        ; fresh-store (instantiate-storage storage)
+        fresh-store (store/get-storage-handle {:type :memory})
+        {:keys [rules axioms]} (pabu/read-stream in-stream)
+
+        json (data/stream->triples fresh-store json-file)
+
+        basic-store (store/assert-data fresh-store axioms)
+        json-data (data/stream->triples basic-store json-file)
+        loaded-store (store/assert-data basic-store json-data)
+
+        config {:type :memory ; TODO: type from flag+URI (store-type storage)
+                :store loaded-store}
+
+        program (r/create-program rules [])
+
+        ;; run the program
+        [store stats] (e/run config program)
+        output (data/store->str store)]
+    (spit out-file output)))
+
+(defn -main [& args]
+  (let [{{:keys [halp json output storage]} :options,
+         arguments :arguments :as opts} (parse-opts args cli-options)]
+
+    (when halp (exit 1 (usage opts)))
+    (with-open [in-stream (if-let [filename (first arguments)]
+                            (io/input-stream filename)
+                            *in*)]
+      (if json
+        (json-program in-stream json output storage)
+        (logic-program in-stream)))))
