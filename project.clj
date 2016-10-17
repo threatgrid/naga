@@ -7,5 +7,6 @@
                  [prismatic/schema "1.0.5"]
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "0.6.5"]
-                 [the/parsatron "0.0.7"]]
+                 [the/parsatron "0.0.7"]
+                 [cheshire "5.6.3"]]
   :main naga.cli)

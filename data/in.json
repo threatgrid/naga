@@ -1,0 +1,10 @@
+[
+  { "id": "fred",
+    "sibling": "barney",
+    "parent": "mary" },
+  { "id": "barney" },
+  { "id": "mary",
+    "sibling": "george" },
+  { "id": "george",
+    "type": "male" }
+]

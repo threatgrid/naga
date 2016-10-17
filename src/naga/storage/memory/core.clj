@@ -2,6 +2,7 @@
       :author "Paula Gearon"}
     naga.storage.memory.core
     (:require [clojure.set :as set]
+              [clojure.string :as str]
               [clojure.core.cache :as c]
               [schema.core :as s]
               [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value]]
@@ -264,7 +265,24 @@
   (start-tx [this] this)
 
   (commit-tx [this] this)
+
+  (new-node [this]
+    (->> "node-"
+        gensym
+        name
+        (keyword "mem")))
+
+  (node-type? [this prop value]
+    (and (keyword? value)
+         (= "mem" (namespace value))
+         (str/starts-with? (name value) "node-")))
   
+  (data-property [_ data]
+    :naga/first)
+
+  (container-property [_ data]
+    :naga/contains)
+
   (resolve-pattern [_ pattern]
     (mem/resolve-pattern graph pattern))
 
