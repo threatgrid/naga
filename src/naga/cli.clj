@@ -20,9 +20,9 @@
 (def cli-options
   [[nil "--storage STRING" "Select store type"
     :validate [(set stores) "Must be a registered storage type."]]
-   [nil "--json STRING" "Filename for input json" :default "in.json"
+   [nil "--json STRING" "Filename for input json"
     :validate [valid-input? "Input file does not exist."]]
-   [nil "--output STRING" "Filename for output json" :default "out.json"
+   [nil "--output STRING" "Filename for output json"
     :validate [valid-output? "Output directory does not exist."]]
    ["-h" "--halp" "Print help"]])
 
