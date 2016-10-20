@@ -108,8 +108,6 @@
         fresh-store (store/get-storage-handle {:type :memory})
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
-        json (data/stream->triples fresh-store json-file)
-
         basic-store (store/assert-data fresh-store axioms)
         json-data (data/stream->triples basic-store json-file)
         loaded-store (store/assert-data basic-store json-data)
