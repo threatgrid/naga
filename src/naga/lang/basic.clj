@@ -6,7 +6,7 @@
             [the.parsatron :refer :all]
             [naga.schema.structs :as st]))
 
-(defn choice* 
+(defn choice*
   "choice with backtracking."
   [& args]
   (apply choice (map attempt args)))
@@ -73,24 +73,24 @@
 
 (defparser integer []
   (let->> [i (either digits (signed-digits))]
-    (always (Long/parseLong (apply str i)))))
+    (always (Long/parseLong (str/join i)))))
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
            f (>> (char \.) (many1 (digit)))]
-    (always (Double/parseDouble (apply str (apply str i) \. f)))))
+    (always (Double/parseDouble (apply str (str/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
-  (let->> [s (many1 (between (char \') (char \') (many non-squote))) ]
-    (always (apply str (flatten (interpose \' s))))))
+  (let->> [s (many1 (between (char \') (char \') (many non-squote)))]
+    (always (str/join (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
   (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
-    (always (apply str (flatten (interpose \" s))))))
+    (always (str/join (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
 
@@ -98,7 +98,7 @@
 (defparser variable []
   (let->> [f (upper-case-letter)
            r (many (letter))]
-    (always (symbol (apply str "?" (Character/toLowerCase f) r) ))))
+    (always (symbol (apply str "?" (Character/toLowerCase f) r)))))
 
 (defn build-keyword
   "Creates a keyword from a parsed word token"
@@ -114,7 +114,7 @@
 ;; atomic values, like a predicate, are represented as a keyword
 (defparser kw []
   (let->> [r ns-word]
-    (let [wrd (apply str r)]
+    (let [wrd (str/join r)]
       (if-let [k (build-keyword wrd)]
         (always k)
         (throw (fail (str "Invalid identifier: " wrd)))))))
