@@ -101,8 +101,7 @@
   "Converts parsed JSON into a sequence of triples for a provided storage."
   [storage j]
   (binding [*current-storage* storage]
-    (doall (apply concat
-                   (map ident-map->triples j)))))
+    (doall (mapcat ident-map->triples j))))
 
 
 (s/defn stream->triples :- [[s/Any s/Keyword s/Any]]
@@ -182,11 +181,12 @@
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- Storage
    prop-vals :- [[s/Keyword s/Any]]]
-  (->
+  (dissoc
    (->> prop-vals
         (map (partial recurse-node store))
         (into {}))
-   (dissoc :db/id :db/ident)))
+   :db/id
+   :db/ident))
 
 
 (s/defn id->json :- {s/Keyword s/Any}

@@ -33,14 +33,15 @@
 
 (defn usage
   [{summary :summary}]
-  (->> ["Executes Naga on a program."
-        ""
-        "Usage: naga [filename]"
-        ""
-        summary
-        (str "Store types: " (into [] stores))
-        ""]
-       (string/join \newline)))
+  (string/join
+    \newline
+    ["Executes Naga on a program."
+     ""
+     "Usage: naga [filename]"
+     ""
+     summary
+     (str "Store types: " (vec stores))
+     ""]))
 
 (defn run-all
   "Runs a program, and returns the data processed, the results, and the stats.
@@ -74,7 +75,6 @@
      :output (remove (set axioms) data)
      :stats stats}))
 
-
 (defn- nm
   "Returns a string version of a keyword. These are not being represented
    as Clojure keywords, so namespaces (when they exist) are separated by
@@ -83,7 +83,6 @@
   (if-let [n (namespace k)]
     (str n ":" (name k))
     (name k)))
-
 
 (defn- predicate-string
   "Convert a predicate triplet into a string."
@@ -95,7 +94,7 @@
 (defn logic-program
   [in-stream]
   (let [{:keys [input output stats]} (run-all in-stream)]
-      (println "INPUT DATA") 
+      (println "INPUT DATA")
       (doseq [a input] (println (predicate-string a)))
       (println "\nNEW DATA")
       (doseq [a output] (println (predicate-string a)))))
