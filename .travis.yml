@@ -1,1 +1,4 @@
 language: clojure
+
+before_script:
+  - lein kibit

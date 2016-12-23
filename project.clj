@@ -9,4 +9,5 @@
                  [org.clojure/core.cache "0.6.5"]
                  [the/parsatron "0.0.7"]
                  [cheshire "5.6.3"]]
+  :profiles {:dev {:plugins [[lein-kibit "0.1.3"]]}}
   :main naga.cli)
