@@ -1,9 +1,10 @@
 language: clojure
 
-before_script:
-  - lein kibit
+install:
+  - lein deps
 
 script:
+  - lein kibit
   - lein test
 
 notifications:
