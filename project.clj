@@ -8,5 +8,6 @@
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "0.6.5"]
                  [the/parsatron "0.0.7"]
-                 [cheshire "5.6.3"]]
+                 [cheshire "5.6.3"]
+                 [com.datomic/datomic-free "0.9.5544"]]
   :main naga.cli)
