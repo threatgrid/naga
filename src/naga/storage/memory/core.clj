@@ -31,7 +31,7 @@
   ([patterns :- [EPVPattern]]
    (let [all-paths (paths #{} patterns)]
      (assert (every? (partial = (count patterns)) (map count all-paths))
-             (str "No valid paths through: " (into [] patterns)))
+             (str "No valid paths through: " (vec patterns)))
      all-paths))
   ([bound :- #{Symbol}
     patterns :- [EPVPattern]]
@@ -123,7 +123,7 @@
 (s/defn select-planner
   "Selects a query planner function"
   [options]
-  (let [opt (into #{} options)]
+  (let [opt (set options)]
     (case (get opt :planner)
       :user user-plan
       :min min-join-path
@@ -197,7 +197,7 @@
 (extend-protocol Constraint
   ;; EPVPatterns are implemented in vectors
   IPersistentVector
-  (get-vars [p] (into #{} (st/vars p)))
+  (get-vars [p] (set (st/vars p)))
 
   (left-join [p results graph] (pattern-left-join graph results p))
 
@@ -302,7 +302,7 @@
     (and (keyword? value)
          (= "mem" (namespace value))
          (str/starts-with? (name value) "node-")))
-  
+
   (data-property [_ data]
     :naga/first)
 
@@ -318,8 +318,7 @@
       (count (mem/resolve-pattern graph pattern))))
 
   (query [_ output-pattern patterns]
-    (->> (join-patterns graph patterns)
-         (project output-pattern)))
+    (project output-pattern (join-patterns graph patterns)))
 
   (assert-data [_ data]
     (->MemoryStore (add-to-graph graph data)))

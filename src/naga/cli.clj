@@ -10,7 +10,8 @@
             [naga.store :as store]
             [naga.data :as data]
             [naga.storage.memory.core])
-  (:import [java.io File]))
+  (:import [clojure.lang ExceptionInfo]
+           [java.io File]))
 
 (def stores (map name (keys @store/registered-stores)))
 
@@ -22,25 +23,25 @@
     :validate [(set stores) "Must be a registered storage type."]]
    [nil "--json STRING" "Filename for input json"
     :validate [valid-input? "Input file does not exist."]]
-   [nil "--output STRING" "Filename for output json"
+   [nil "--out STRING" "Filename for output json"
     :validate [valid-output? "Output directory does not exist."]]
    ["-h" "--halp" "Print help"]])
 
 (defn exit
   [status message]
-  (println message)
-  (System/exit status))
+  (throw (ex-info message {:status status})))
 
 (defn usage
   [{summary :summary}]
-  (->> ["Executes Naga on a program."
-        ""
-        "Usage: naga [filename]"
-        ""
-        summary
-        (str "Store types: " (into [] stores))
-        ""]
-       (string/join \newline)))
+  (string/join
+    \newline
+    ["Executes Naga on a program."
+     ""
+     "Usage: naga [filename]"
+     ""
+     summary
+     (str "Store types: " (vec stores))
+     ""]))
 
 (defn run-all
   "Runs a program, and returns the data processed, the results, and the stats.
@@ -74,7 +75,6 @@
      :output (remove (set axioms) data)
      :stats stats}))
 
-
 (defn- nm
   "Returns a string version of a keyword. These are not being represented
    as Clojure keywords, so namespaces (when they exist) are separated by
@@ -83,7 +83,6 @@
   (if-let [n (namespace k)]
     (str n ":" (name k))
     (name k)))
-
 
 (defn- predicate-string
   "Convert a predicate triplet into a string."
@@ -95,7 +94,7 @@
 (defn logic-program
   [in-stream]
   (let [{:keys [input output stats]} (run-all in-stream)]
-      (println "INPUT DATA") 
+      (println "INPUT DATA")
       (doseq [a input] (println (predicate-string a)))
       (println "\nNEW DATA")
       (doseq [a output] (println (predicate-string a)))))
@@ -103,12 +102,12 @@
 (defn json-program
   "Runs a program over data in a JSON file"
   [in-stream json-file out-file storage]
+  (when-not out-file
+    (exit 2 "No output json file specified"))
   (let [; TODO: handle storage URIs to determine type and connection
         ; fresh-store (instantiate-storage storage)
         fresh-store (store/get-storage-handle {:type :memory})
         {:keys [rules axioms]} (pabu/read-stream in-stream)
-
-        json (data/stream->triples fresh-store json-file)
 
         basic-store (store/assert-data fresh-store axioms)
         json-data (data/stream->triples basic-store json-file)
@@ -125,13 +124,17 @@
     (spit out-file output)))
 
 (defn -main [& args]
-  (let [{{:keys [halp json output storage]} :options,
-         arguments :arguments :as opts} (parse-opts args cli-options)]
+  (try
+    (let [{{:keys [halp json out storage]} :options,
+           arguments :arguments :as opts} (parse-opts args cli-options)]
 
-    (when halp (exit 1 (usage opts)))
-    (with-open [in-stream (if-let [filename (first arguments)]
-                            (io/input-stream filename)
-                            *in*)]
-      (if json
-        (json-program in-stream json output storage)
-        (logic-program in-stream)))))
+      (when halp (exit 1 (usage opts)))
+      (with-open [in-stream (if-let [filename (first arguments)]
+                              (io/input-stream filename)
+                              *in*)]
+        (if json
+          (json-program in-stream json out storage)
+          (logic-program in-stream))))
+    (catch ExceptionInfo e
+      (binding [*out* *err*]
+        (println (.getMessage e))))))

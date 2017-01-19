@@ -1,4 +1,9 @@
+jn:SymmetricProperty(sibling).
+
 parent(B,Cid) :- sibling(A,Bid), id(B,Bid), parent(A,Cid), id(C,Cid) .
+
 brother(A,Bid) :- sibling(A,Bid), id(B,Bid), type(B,"male") .
+
 uncle(A,Cid) :- parent(A,Bid), id(B,Bid), brother(B,Cid).
 
+P(B,Aid) :- P(A,Bid), id(A,Aid), id(B,Bid), jn:SymmetricProperty(P).

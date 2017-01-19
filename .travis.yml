@@ -1,1 +1,13 @@
 language: clojure
+
+install:
+  - lein deps
+
+script:
+  - lein kibit
+  - lein test
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change

@@ -10,11 +10,13 @@
 
 (def ^:dynamic *current-storage* nil)
 
+(def Triple [s/Any s/Keyword s/Any])
+
 (s/defn containership-triples
   "Finds the list of entity nodes referred to in a list and builds
    triples describing a flat 'contains' property"
   [node :- s/Any
-   triples :- [[s/Any s/Keyword s/Any]]]
+   triples :- [Triple]]
   (let [listmap (->> (group-by first triples)
                      (map (fn [[k vs]]
                             [k (into {} (map #(apply vector (rest %)) vs))]))
@@ -62,7 +64,7 @@
 (defmethod value-triples :default [v] [v nil])
 
 
-(s/defn property-vals :- [[s/Any s/Keyword s/Any]]
+(s/defn property-vals :- [Triple]
   "Takes a property-value pair associated with an entity,
    and builds triples around it"
   [entity-id :- s/Any
@@ -71,9 +73,9 @@
     (cons [entity-id property value-id] value-data)))
 
 
-(s/defn map->triples :- [s/Any [[s/Any s/Keyword s/Any]]]
+(s/defn map->triples :- [s/Any [Triple]]
   "Converts a single map to triples. Returns a pair of the map's ID and the triples for the map."
-  [data :- {s/Any s/Any}]
+  [data :- {s/Keyword s/Any}]
   (let [entity-id (or (:db/id data) (store/new-node *current-storage*))
         triples-data (mapcat (partial property-vals entity-id)
                              data)]
@@ -88,7 +90,7 @@
     (keyword "naga" (str "id-" id))))
 
 
-(s/defn ident-map->triples :- [s/Any [[s/Any s/Keyword s/Any]]]
+(s/defn ident-map->triples :- [s/Any [Triple]]
   "Converts a single map to triples for an ID'ed map"
   [j]
   (let [[id triples] (map->triples j)]
@@ -97,15 +99,14 @@
       (cons [id :db/ident (name-for id)] triples))))
 
 
-(s/defn json->triples
+(s/defn json->triples :- [Triple]
   "Converts parsed JSON into a sequence of triples for a provided storage."
   [storage j]
   (binding [*current-storage* storage]
-    (doall (apply concat
-                   (map ident-map->triples j)))))
+    (doall (mapcat ident-map->triples j))))
 
 
-(s/defn stream->triples :- [[s/Any s/Keyword s/Any]]
+(s/defn stream->triples :- [Triple]
   "Converts a stream to triples relevant to a store"
   [storage io]
   (with-open [r (io/reader io)]
@@ -113,7 +114,7 @@
       (json->triples storage data))))
 
 
-(s/defn string->triples :- [[s/Any s/Keyword s/Any]]
+(s/defn string->triples :- [Triple]
   "Converts a string to triples relevant to a store"
   [storage :- Storage
    s :- s/Str]
@@ -182,11 +183,12 @@
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- Storage
    prop-vals :- [[s/Keyword s/Any]]]
-  (->
+  (dissoc
    (->> prop-vals
         (map (partial recurse-node store))
         (into {}))
-   (dissoc :db/id :db/ident)))
+   :db/id
+   :db/ident))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
