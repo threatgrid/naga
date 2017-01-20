@@ -111,3 +111,69 @@
     (is (= #{[:pa :t]
              [:pb :u]
              [:pz :l]} r1))))
+
+(deftest test-query-path
+  (let [simple-p '[[?a :a :b] [?b :c :d]]
+        simple-cm '{[?a :a :b] 1, [?b :c :d] 1}
+        [g] (first-group simple-p)
+        p (min-join-path simple-p simple-cm)
+        simple-p2 '[[?a :a :b] [?b :c :d] [?c :e ?b] [?a :c :d]]
+        simple-cm2 '{[?a :a :b] 1, [?b :c :d] 2, [?c :e ?b] 1, [?a :c :d] 1}
+        [g2] (first-group simple-p2)
+        p2 (min-join-path simple-p2 simple-cm2)
+        patterns '[[?a :a :b]
+                   [?b :c ?d]
+                   [?d :d ?e]
+                   [?d :e ?f]
+                   [?f :f ?a]
+                   [?f :g ?g]
+                   [?g :v1 ?v1]
+                   [?g :v2 ?v2]
+                   [?h :v1 ?v1]
+                   [?h :v2 ?v2]
+                   [?i :i ?h]
+                   [?other :id "id"]]
+        count-map '{[?a :a :b] 1
+                    [?b :c ?d] 2
+                    [?d :d ?e] 3
+                    [?d :e ?f] 3
+                    [?f :f ?a] 3
+                    [?f :g ?g] 5
+                    [?g :v1 ?v1] 3
+                    [?g :v2 ?v2] 4
+                    [?h :v1 ?v1] 5
+                    [?h :v2 ?v2] 6
+                    [?i :i ?h] 7
+                    [?other :id "id"] 1}
+        [group] (first-group patterns)
+        path (min-join-path patterns count-map)]
+
+    (is (= '[[?a :a :b]] g))
+    (is (= '[[?a :a :b] [?b :c :d]] p))
+
+    (is (= '[[?a :a :b] [?a :c :d]] g2))
+    (is (= '[[?a :a :b] [?a :c :d] [?c :e ?b] [?b :c :d]] p2))
+
+    (is (= '[[?a :a :b]
+             [?f :f ?a]
+             [?f :g ?g]
+             [?g :v1 ?v1]
+             [?g :v2 ?v2]
+             [?h :v1 ?v1]
+             [?h :v2 ?v2]
+             [?i :i ?h]
+             [?d :e ?f]
+             [?b :c ?d]
+             [?d :d ?e]] group))
+    (is (= '[[?a :a :b]
+             [?f :f ?a]
+             [?d :e ?f]
+             [?b :c ?d]
+             [?d :d ?e]
+             [?f :g ?g]
+             [?g :v1 ?v1]
+             [?g :v2 ?v2]
+             [?h :v1 ?v1]
+             [?h :v2 ?v2]
+             [?i :i ?h]
+             [?other :id "id"]] path))))

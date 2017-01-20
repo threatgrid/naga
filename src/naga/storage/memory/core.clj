@@ -23,33 +23,49 @@
    s :- [s/Any]]
   (remove (partial = e) s))
 
+(s/defn find-start :- EPVPattern
+  "Returns the first pattern with the smallest count"
+  [pattern-counts :- {EPVPattern s/Num}
+   patterns :- [EPVPattern]]
+  (let [local-counts (select-keys pattern-counts patterns)
+        low-count (reduce min (map second local-counts))
+        pattern (ffirst (filter #(= low-count (second %)) local-counts))]
+    ;; must use first/filter/= instead of some/#{pattern} because
+    ;; patterns contains metadata and pattern does not
+    (first (filter (partial = pattern) patterns))))
 
 (s/defn paths :- [[EPVPattern]]
   "Returns a seq of all paths through the constraints. A path is defined
    by new patterns containing at least one variable common to the patterns
    that appeared before it. Patterns must form a group."
-  ([patterns :- [EPVPattern]]
-   (let [all-paths (paths #{} patterns)]
-     (assert (every? (partial = (count patterns)) (map count all-paths))
-             (str "No valid paths through: " (vec patterns)))
-     all-paths))
-  ([bound :- #{Symbol}
-    patterns :- [EPVPattern]]
-   (apply concat
-          (keep    ;; discard paths that can't proceed (they return nil)
-           (fn [p]
-             (let [b (get-vars p)]
-               ;; only proceed when the pattern matches what has been bound
-               (if (or (empty? bound) (seq (set/intersection b bound)))
-                 ;; pattern can be added to the path, get the other patterns
-                 (let [remaining (without p patterns)]
-                   ;; if there are more patterns to add to the path, recurse
-                   (if (seq remaining)
-                     (map (partial cons p)
-                          (seq
-                           (paths (into bound b) remaining)))
-                     [[p]])))))
-           patterns))))
+  ([patterns :- [EPVPattern]
+    pattern-counts :- {EPVPattern s/Num}]
+   (s/letfn [(remaining-paths :- [[EPVPattern]]
+               [bound :- #{Symbol}
+                rpatterns :- [EPVPattern]]
+               (if (seq rpatterns)
+                 (apply concat
+                        (keep ;; discard paths that can't proceed (they return nil)
+                         (fn [p]
+                           (let [b (get-vars p)]
+                             ;; only proceed when the pattern matches what has been bound
+                             (if (or (empty? bound) (seq (set/intersection b bound)))
+                               ;; pattern can be added to the path, get the other patterns
+                               (let [remaining (without p rpatterns)]
+                                 ;; if there are more patterns to add to the path, recurse
+                                 (if (seq remaining)
+                                   (map (partial cons p)
+                                        (seq
+                                         (remaining-paths (into bound b) remaining)))
+                                   [[p]])))))
+                         rpatterns))
+                 [[]]))]
+     (let [start (find-start pattern-counts patterns)
+           all-paths (map (partial cons start)
+                          (remaining-paths (get-vars start) (without start patterns)))]
+       (assert (every? (partial = (count patterns)) (map count all-paths))
+               (str "No valid paths through: " (vec patterns)))
+       all-paths))))
 
 
 (def epv-pattern? vector?)
@@ -106,10 +122,10 @@
   [patterns :- [Pattern]
    count-map :- {EPVPattern s/Num}]
   (loop [[grp rmdr] (first-group patterns) ordered []]
-    (let [all-ordered (->> (paths grp)
+    (let [all-ordered (->> (paths grp count-map)
                            (sort-by (partial mapv count-map))
                            first
-                           (concat ordered))]
+                           (concat ordered))] ;; TODO: order groups, rather than concat as found
       (if (empty? rmdr)
         all-ordered
         (recur (first-group rmdr) all-ordered)))))
