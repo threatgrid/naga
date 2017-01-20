@@ -27,3 +27,23 @@
       symbol
       find-ns
       (ns-resolve snm))))
+
+(s/defn divide :- [[s/Any] [s/Any]]
+  "Takes a predicate and a sequence and returns 2 sequences.
+   The first is where the predicate returns true, and the second
+   is where the predicate returns false. Note that a nil value
+   will not be returned in either sequence, regardless of the
+   value returned by the predicate."
+  [p
+   s :- [s/Any]]
+  (let [d (map (fn [x] (if (p x) [x nil] [nil x])) s)]
+    [(keep first d) (keep second d)]))
+
+(defn fixpoint
+  "Applies the function f to the value a. The function is then,
+   and applied to the result, over and over, until the result does not change.
+   Returns the final result.
+   Note: If the function has no fixpoint, then runs forever."
+  [f a]
+  (let [s (iterate f a)]
+    (some identity (map #(#{%1} %2) s (rest s)))))

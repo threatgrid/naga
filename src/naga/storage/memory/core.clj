@@ -23,33 +23,49 @@
    s :- [s/Any]]
   (remove (partial = e) s))
 
+(s/defn find-start :- EPVPattern
+  "Returns the first pattern with the smallest count"
+  [pattern-counts :- {EPVPattern s/Num}
+   patterns :- [EPVPattern]]
+  (let [local-counts (select-keys pattern-counts patterns)
+        low-count (reduce min (map second local-counts))
+        pattern (ffirst (filter #(= low-count (second %)) local-counts))]
+    ;; must use first/filter/= instead of some/#{pattern} because
+    ;; patterns contains metadata and pattern does not
+    (first (filter (partial = pattern) patterns))))
 
 (s/defn paths :- [[EPVPattern]]
   "Returns a seq of all paths through the constraints. A path is defined
    by new patterns containing at least one variable common to the patterns
-   that appeared before it. This prevents cross products in a join."
-  ([patterns :- [EPVPattern]]
-   (let [all-paths (paths #{} patterns)]
-     (assert (every? (partial = (count patterns)) (map count all-paths))
-             (str "No valid paths through: " (vec patterns)))
-     all-paths))
-  ([bound :- #{Symbol}
-    patterns :- [EPVPattern]]
-   (apply concat
-          (keep    ;; discard paths that can't proceed (they return nil)
-           (fn [p]
-             (let [b (get-vars p)]
-               ;; only proceed when the pattern matches what has been bound
-               (if (or (empty? bound) (seq (set/intersection b bound)))
-                 ;; pattern can be added to the path, get the other patterns
-                 (let [remaining (without p patterns)]
-                   ;; if there are more patterns to add to the path, recurse
-                   (if (seq remaining)
-                     (map (partial cons p)
-                          (seq
-                           (paths (into bound b) remaining)))
-                     [[p]])))))
-           patterns))))
+   that appeared before it. Patterns must form a group."
+  ([patterns :- [EPVPattern]
+    pattern-counts :- {EPVPattern s/Num}]
+   (s/letfn [(remaining-paths :- [[EPVPattern]]
+               [bound :- #{Symbol}
+                rpatterns :- [EPVPattern]]
+               (if (seq rpatterns)
+                 (apply concat
+                        (keep ;; discard paths that can't proceed (they return nil)
+                         (fn [p]
+                           (let [b (get-vars p)]
+                             ;; only proceed when the pattern matches what has been bound
+                             (if (or (empty? bound) (seq (set/intersection b bound)))
+                               ;; pattern can be added to the path, get the other patterns
+                               (let [remaining (without p rpatterns)]
+                                 ;; if there are more patterns to add to the path, recurse
+                                 (if (seq remaining)
+                                   (map (partial cons p)
+                                        (seq
+                                         (remaining-paths (into bound b) remaining)))
+                                   [[p]])))))
+                         rpatterns))
+                 [[]]))]
+     (let [start (find-start pattern-counts patterns)
+           all-paths (map (partial cons start)
+                          (remaining-paths (get-vars start) (without start patterns)))]
+       (assert (every? (partial = (count patterns)) (map count all-paths))
+               (str "No valid paths through: " (vec patterns)))
+       all-paths))))
 
 
 (def epv-pattern? vector?)
@@ -75,6 +91,29 @@
             (recur (into plan nxt-filters) bound patterns remaining-filters)
             (recur (conj plan np) (into bound (get-vars np)) rp filters)))))))
 
+(s/defn first-group :- [(s/one [Pattern] "group") (s/one [Pattern] "remainder")]
+  "Finds a group from a sequence of patterns. A group is defined by every pattern
+   sharing at least one var with at least one other pattern. Returns a pair.
+   The first returned element is the Patterns in the group, the second is what was left over."
+  [[fp & rp] :- [Pattern]]
+  (letfn [;; Define a reduction step.
+          ;; Accumulates a triple of: known vars; patterns that are part of the group;
+          ;; patterns that are not in the group. Each step looks at a pattern for
+          ;; inclusion or exclusion
+          (step [[vs included excluded] next-pattern]
+            (let [new-vars (get-vars next-pattern)]
+              (if (seq (set/intersection vs new-vars))
+                [(into vs new-vars) (conj included next-pattern) excluded]
+                [vs included (conj excluded next-pattern)])))
+          ;; apply the reduction steps, with a given set of known vars, and
+          ;; included patterns. Previously excluded patterns are being scanned
+          ;; again using the new known vars.
+          (groups [[v i e]] (reduce step [v i []] e))]
+    ;; scan for everything that matches the first pattern, and then iterate until
+    ;; everything that matches the resulting patterns has also been found.
+    ;; Drop the set of vars before returning.
+    (rest (u/fixpoint groups [(get-vars fp) [fp] rp]))))
+
 (s/defn min-join-path :- [EPVPattern]
   "Calculates a plan based on no outer joins (a cross product), and minimized joins.
    A plan is the order in which to evaluate constraints and join them to the accumulated
@@ -82,11 +121,14 @@
    then return a plan of the patterns in the provided order."
   [patterns :- [Pattern]
    count-map :- {EPVPattern s/Num}]
-  (or
-   (->> (paths patterns)
-        (sort-by (partial mapv count-map))
-        first)
-   patterns)) ;; TODO: longest paths with minimized cross products
+  (loop [[grp rmdr] (first-group patterns) ordered []]
+    (let [all-ordered (->> (paths grp count-map)
+                           (sort-by (partial mapv count-map))
+                           first
+                           (concat ordered))] ;; TODO: order groups, rather than concat as found
+      (if (empty? rmdr)
+        all-ordered
+        (recur (first-group rmdr) all-ordered)))))
 
 (s/defn user-plan :- [EPVPattern]
   "Returns the original path specified by the user"

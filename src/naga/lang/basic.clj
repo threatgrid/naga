@@ -60,7 +60,7 @@
 
 ;; This does not include all legal characters.
 ;; Consider some others in future, especially >
-(def ns-word (many1 (choice (letter) (char \_) (char \-) (char \:))))
+(def ns-word (many1 (choice (letter) (digit) (char \_) (char \-) (char \:))))
 
 (def word (many1 (letter)))
 
@@ -97,7 +97,7 @@
 ;; variables start with a capital. Internally they start with ?
 (defparser variable []
   (let->> [f (upper-case-letter)
-           r (many (letter))]
+           r (many (choice (letter) (digit) (char \_) (char \-)))]
     (always (symbol (apply str "?" (Character/toLowerCase f) r)))))
 
 (defn build-keyword
@@ -106,7 +106,8 @@
   (let [[kns kname :as w] (str/split wrd #":")
         parts (count w)]
     ;; use cond without a default to return nil
-    (cond (= 2 parts) (cond (empty? kns) (keyword kname)
+    (cond (Character/isDigit (first wrd)) nil
+          (= 2 parts) (cond (empty? kns) (keyword kname)
                             (seq kname) (keyword kns kname))
           (= 1 parts) (if-not (str/ends-with? wrd ":")
                         (keyword kns)))))
