@@ -129,7 +129,20 @@
     (is (= 2 (count
               (filter (fn [[e a v]]
                         (and (= e v) (nodes e) (= :db/ident a)))
-                      data))))))
+                      data)))))
+  (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
+        ax [[:data :foo :bar] [:other :foo :baz]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data' (store/resolve-pattern store '[?e ?a ?v])
+        data (remove #(#{[:data :foo :bar] [:other :foo :baz]} %) data')
+        nodes (set (map first data))]
+    (is (= 6 (count data)))
+    (is (= 2 (count nodes)))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
+    (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
+    (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= e v) (= :db/ident a))) data))))))
 
 ;; todo blank-multi-prop
 
