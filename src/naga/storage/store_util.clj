@@ -16,13 +16,12 @@
    mapping :- {s/Num s/Num}
    row :- [Value]]
   (let [get-node (memoize (fn [n] (store/new-node storage)))
-        node-statements (apply concat
-                               (map (fn [i]
-                                      (let [node (get-node i)]
-                                        [node :db/ident node]))
-                                    nodes))
+        node-statements (mapcat (fn [i]
+                                  (let [node (get-node i)]
+                                    [node :db/ident node]))
+                                nodes)
         update-pattern (fn [p [t f]]
-                         (let [v (if (< f 0) (get-node f) (nth row f))]
+                         (let [v (if (neg? f) (get-node f) (nth row f))]
                            (assoc p t v)))]
     (concat node-statements
             (reduce update-pattern wide-pattern mapping))))
