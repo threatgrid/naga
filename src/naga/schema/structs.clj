@@ -44,6 +44,7 @@
 (def Pattern (s/if list? FilterPattern EPVPattern))
 
 (def Body [Pattern])
+(def Head [EPVPattern])
 
 (def ConstraintData
   {:last-count s/Num  ;; The count from the previous execution
@@ -64,7 +65,7 @@
 ;; the body is conjunction of pattern matches.
 ;; All rules have a name, and a list of names of downstream rules.
 (s/defrecord Rule
-    [head :- EPVPattern
+    [head :- Head
      body :- Body
      name :- s/Str
      salience :- s/Num
@@ -73,16 +74,16 @@
      execution-count :- (s/atom s/Num)])
 
 (s/defn new-rule
-  ([head :- EPVPattern
+  ([head :- Head
     body :- Body
     name :- s/Str]
    (new-rule head body name []))
-  ([head :- EPVPattern
+  ([head :- Head
     body :- Body
     name :- s/Str
     downstream :- [RulePatternPair]]
    (new-rule head body name downstream 0))
-  ([head :- EPVPattern
+  ([head :- Head
     body :- Body
     name :- s/Str
     downstream :- [RulePatternPair]

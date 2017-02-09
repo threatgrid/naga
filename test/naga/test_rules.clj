@@ -47,8 +47,8 @@
 
 (deftest single-rule
   (let [ptn '[?a :ancestor ?b]
-        r1 (new-rule '[?a :parent ?b] [ptn] "stub1" [])
-        r2 (new-rule '[?a :parent ?b] [ptn] "stub2" [["stub2" ptn]])
+        r1 (new-rule '[[?a :parent ?b]] [ptn] "stub1" [])
+        r2 (new-rule '[[?a :parent ?b]] [ptn] "stub2" [["stub2" ptn]])
         p1 {:rules {"stub1" r1} :axioms []}
         p2 {:rules {"stub2" r2} :axioms []}]
     (e/execute (:rules p1) stest/empty-store)
@@ -73,10 +73,82 @@
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
+(deftest multi-prop
+  (store/register-storage! :memory mem/create-store)
+  (let [r2 [(r "multi-prop" [?x :first :a] [?x :second :b] :- [?x :foo ?y])]
+        a2 [[:data :foo :bar]]
+        program (r/create-program r2 a2)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :first :a] [:data :second :b]} (set data)))))
+
+(deftest blank-prop
+  (store/register-storage! :memory mem/create-store)
+  (let [rx [(r "multi-prop" [?z :first :a] :- [?x :foo ?y])]
+        ax [[:data :foo :bar]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])
+        data' (remove #(= :data (first %)) data)]
+    (is (= 3 (count data)))
+    (is (= 2 (count data')))
+    (is (not= :data (ffirst data')))
+    (is (apply = (map first data')))))
+
+(deftest blank-multi-prop
+  (store/register-storage! :memory mem/create-store)
+  (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
+        ax [[:data :foo :bar]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data' (store/resolve-pattern store '[?e ?a ?v])
+        data (remove #(= [:data :foo :bar] %) data')
+        node* (map first data)
+        node (first node*)]
+    (is (= 3 (count data)))
+    (is (apply = node*))
+    (is (some #(= [node :first :a] %) data))
+    (is (some #(= [node :second :bar] %) data))
+    (is (some #(= [node :db/ident node] %) data)))
+  (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y]
+               [?a :first :b] [?a :third ?x] :- [?x :foo ?y])]
+        ax [[:data :foo :bar]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data' (store/resolve-pattern store '[?e ?a ?v])
+        data (remove #(= [:data :foo :bar] %) data')
+        nodes (set (map first data))]
+    (is (= 6 (count data)))
+    (is (= 2 (count nodes)))
+    (is (some (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))
+    (is (some (fn [[e a v]] (and (nodes e) (= [:first :b] [a v]))) data))
+    (is (some (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))
+    (is (some (fn [[e a v]] (and (nodes e) (= [:third :data] [a v]))) data))
+    (is (= 2 (count
+              (filter (fn [[e a v]]
+                        (and (= e v) (nodes e) (= :db/ident a)))
+                      data)))))
+  (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
+        ax [[:data :foo :bar] [:other :foo :baz]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data' (store/resolve-pattern store '[?e ?a ?v])
+        data (remove #(#{[:data :foo :bar] [:other :foo :baz]} %) data')
+        nodes (set (map first data))]
+    (is (= 6 (count data)))
+    (is (= 2 (count nodes)))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
+    (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
+    (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= e v) (= :db/ident a))) data))))))
+
+;; todo blank-multi-prop
 
 (defn short-rule
   [{:keys [head body]}]
-  (concat [head :-] body))
+  (concat head [:-] body))
 
 (defn demo-family
   []

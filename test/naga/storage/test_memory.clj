@@ -59,7 +59,7 @@
 
 (defn unordered-query
   [s op pattern]
-  (into #{} (query s op pattern)))
+  (into #{} (query s [op] pattern)))
 
 (deftest test-join
   (let [s (assert-data empty-store jdata)
