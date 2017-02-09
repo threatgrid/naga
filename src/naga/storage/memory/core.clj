@@ -5,9 +5,10 @@
               [clojure.string :as str]
               [clojure.core.cache :as c]
               [schema.core :as s]
-              [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value]]
+              [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value Axiom]]
               [naga.store :as store]
               [naga.util :as u]
+              [naga.storage.store-util :as store-util]
               [naga.storage.memory.index :as mem])
     (:import [clojure.lang Symbol IPersistentVector IPersistentList]
              [naga.store Storage]))
@@ -166,7 +167,7 @@
 
 (s/defn modify-pattern :- [s/Any]
   "Creates a new EPVPattern from an existing one, based on existing bindings.
-   Uses the mapping to copy from columns in 'existing' to overwrite variableis in 'pattern'.
+   Uses the mapping to copy from columns in 'existing' to overwrite variables in 'pattern'.
    The variable locations have already been found and are in the 'mapping' argument"
   [existing :- [Value]
    mapping :- {s/Num s/Num}
@@ -269,19 +270,71 @@
                       {:cols (st/vars fpath)})]
     (reduce ljoin part-result rpath)))
 
+(s/defn group-exists? :- [s/Any]
+  "Determines if a group is instantiating a new piece of data,
+   and if so checks if it already exists."
+  [storage
+   group :- [Axiom]]
+  (let [[entity _ val] (some (fn [[_ a _ :as axiom]] (when (= a :db/ident) axiom)) group)]
+    (seq (store/resolve-pattern storage ['?e :db/ident val]))))
+
+(s/defn offset-mappings :- {s/Num s/Num}
+  "Build a pattern->data mapping that returns offsets into a pattern mapped to corresponding
+   offsets into data. If a data offset is negative, then this indicates a node must be built
+   instead of reading from the data."
+  [storage
+   full-pattern :- [s/Any]
+   data :- Results]
+  (let [data-vars (:cols (meta data))
+        known-vars (set data-vars)
+        var-positions (matching-vars full-pattern data-vars)
+        fresh-map (->> full-pattern
+                       (filter #(and (st/vartest? %) (not (known-vars %))))
+                       set
+                       (map-indexed (fn [n v] [v (- (inc n))]))
+                       (into {}))]
+    (->> full-pattern
+         (map-indexed
+          (fn [n v] (if (and (nil? (var-positions n)) (st/vartest? v)) [n (fresh-map v)])))
+         (filter identity)
+         (into var-positions))))
+
+(s/defn new-nodes :- [s/Num]
+  "Returns all the new node references that appears in a map of offsets.
+   Node references are negative numbers."
+  [offset-map :- {s/Num s/Num}]
+  (seq (set (filter neg? (vals offset-map)))))
 
 (s/defn project :- Results
-  "Converts each row from a result, into just the requested columns, as per the pattern arg.
-   Any specified value in the pattern will be copied into that position in the projection.
-  e.g. For pattern [?h1 :friend ?h2]
+  "Converts each row from a result, into just the requested columns, as per the patterns arg.
+   Any specified value in the patterns will be copied into that position in the projection.
+   Unbound patterns will generate new nodes for each row.
+  e.g. For patterns [[?h1 :friend ?h2]]
        data: [[h1=frodo h3=bilbo h2=gandalf]
               [h1=merry h3=pippin h2=frodo]]
   leads to: [[h1=frodo :friend h2=gandalf]
              [h1=merry :friend h2=frodo]]"
-  [pattern :- [s/Any]
+  [storage
+   patterns :- [[s/Any]]
    data :- Results]
-  (let [pattern->data (matching-vars pattern (:cols (meta data)))]
-    (map #(modify-pattern % pattern->data pattern) data)))
+  (let [full-pattern (vec (apply concat patterns))
+        pattern->data (offset-mappings storage full-pattern data)
+        nodes (new-nodes pattern->data)]
+    (map #(store-util/project-row storage full-pattern nodes pattern->data %) data)))
+
+(s/defn insert-project :- Results
+  "Similar to project, only the generated data will be in triples for insertion.
+   If triples describe entities with existing dc/ident fields, then they will be dropped."
+  [storage
+   patterns :- [[s/Any]]
+   data :- Results]
+  (let [full-pattern (vec (apply concat patterns))
+        pattern->data (offset-mappings storage full-pattern data)
+        nodes (new-nodes pattern->data)]
+    (->> data
+         (map #(partition 3 (store-util/project-row storage full-pattern nodes pattern->data %)))
+         (remove (partial group-exists? storage))
+         (apply concat))))
 
 (s/defn add-to-graph
   [graph
@@ -333,15 +386,15 @@
       (count-fn pattern)
       (count (mem/resolve-pattern graph pattern))))
 
-  (query [_ output-pattern patterns]
-    (project output-pattern (join-patterns graph patterns)))
+  (query [this output-pattern patterns]
+    (project this output-pattern (join-patterns graph patterns)))
 
   (assert-data [_ data]
     (->MemoryStore (add-to-graph graph data)))
 
-  (query-insert [this assertion-pattern patterns]
+  (query-insert [this assertion-patterns patterns]
     (->> (join-patterns graph patterns)
-         (project assertion-pattern)
+         (insert-project this assertion-patterns)
          (add-to-graph graph)
          ->MemoryStore)))
 

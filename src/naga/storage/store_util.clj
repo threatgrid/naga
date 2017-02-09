@@ -11,13 +11,18 @@
    'pattern' must be a vector.
    The index mappings have already been found and are in the 'mapping' argument"
   [storage
-   patterns :- [EPVPattern]
+   wide-pattern :- [s/Any]
+   nodes :- (s/maybe [s/Num])
    mapping :- {s/Num s/Num}
    row :- [Value]]
-  (let [wide-pattern (vec (apply concat patterns))
-        get-node (memoize (fn [n] (store/new-node storage)))
+  (let [get-node (memoize (fn [n] (store/new-node storage)))
+        node-statements (apply concat
+                               (map (fn [i]
+                                      (let [node (get-node i)]
+                                        [node :db/ident node]))
+                                    nodes))
         update-pattern (fn [p [t f]]
                          (let [v (if (< f 0) (get-node f) (nth row f))]
                            (assoc p t v)))]
-    (partition 3
-               (reduce update-pattern wide-pattern mapping))))
+    (concat node-statements
+            (reduce update-pattern wide-pattern mapping))))

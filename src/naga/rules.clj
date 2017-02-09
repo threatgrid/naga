@@ -15,7 +15,8 @@
   ([head body name]
    (assert (and (sequential? body) (or (empty? body) (every? sequential? body)))
            "Body must be a sequence of constraints")
-   (assert (sequential? head) "Head must be a constraint")
+   (assert (and (sequential? head) (or (empty? head) (every? sequential? head)))
+           "Head must be a sequence of constraints")
    (st/new-rule head body name)))
 
 (s/defn named-rule :- Rule
@@ -54,7 +55,7 @@
   [& [f :as rs]]
   (let [[nm# rs#] (if (string? f) [f (rest rs)] [(gen-rule-name) rs])
         not-sep# (partial not= :-)
-        head# (de-ns (first (take-while not-sep# rs#)))
+        head# (map de-ns (take-while not-sep# rs#))
         body# (map de-ns (rest (drop-while not-sep# rs#)))]
     `(rule (quote ~head#) (quote ~body#) ~nm#)))
 
@@ -100,7 +101,7 @@
   (let [name-bodies (u/mapmap :name :body rules)
         triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
         deps (fn [{:keys [head body name]}]
-               (st/new-rule head body name (triggers head)))]
+               (st/new-rule head body name (mapcat triggers head)))]
     {:rules (u/mapmap :name identity (map deps rules))
      :axioms axioms}))
 

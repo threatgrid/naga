@@ -67,16 +67,16 @@ Parses code and returns Naga rules."
 
 (def RuleAST
   {:type (s/eq :rule)
-   :head [(s/one VK "property")
-          (s/one Args "arguments")]
+   :head [[(s/one VK "property")
+            (s/one Args "arguments")]]
    :body [Predicate]})
 
 (s/defn ast->rule :- Rule
   "Converts the rule structure returned from the parser"
   [{:keys [head body] :as rule-ast} :- RuleAST]
-  (r/rule (triplet head)
+  (r/rule (map triplet head)
           (mapcat structure body)
-          (-> head first name gensym name)))
+          (-> head ffirst name gensym name)))
 
 (s/defn read-str :- {:rules [Rule]
                      :axioms [Axiom]}
