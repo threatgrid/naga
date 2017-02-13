@@ -19,6 +19,11 @@
   [x]
   (and (symbol? x) (= \% (first (name x)))))
 
+(defn- vars [constraint]
+  (if (list? constraint)
+    (filter st/vartest? (rest constraint))
+    (st/vars constraint)))
+
 (defn mark-unbound
   "Convert a head to use fresh vars for any vars that are unbound.
    Scans the vars in the body to identify which vars are unbound."
@@ -37,6 +42,8 @@
            "Body must be a sequence of constraints")
    (assert (and (sequential? head) (or (empty? head) (every? sequential? head)))
            "Head must be a sequence of constraints")
+   (assert (every? (complement fresh-var?) (mapcat vars body))
+           "Fresh vars are not allowed in a body")
    (st/new-rule (mark-unbound head body) body name)))
 
 (s/defn named-rule :- Rule
