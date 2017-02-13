@@ -92,7 +92,7 @@
             (recur (into plan nxt-filters) bound patterns remaining-filters)
             (recur (conj plan np) (into bound (get-vars np)) rp filters)))))))
 
-(s/defn first-group :- [(s/one [Pattern] "group") (s/one [Pattern] "remainder")]
+(s/defn first-group* :- [(s/one [Pattern] "group") (s/one [Pattern] "remainder")]
   "Finds a group from a sequence of patterns. A group is defined by every pattern
    sharing at least one var with at least one other pattern. Returns a pair.
    The first returned element is the Patterns in the group, the second is what was left over."
@@ -114,6 +114,8 @@
     ;; everything that matches the resulting patterns has also been found.
     ;; Drop the set of vars before returning.
     (rest (u/fixpoint groups [(get-vars fp) [fp] rp]))))
+
+(def first-group (memoize first-group*))
 
 (s/defn min-join-path :- [EPVPattern]
   "Calculates a plan based on no outer joins (a cross product), and minimized joins.
