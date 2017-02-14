@@ -144,7 +144,19 @@
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
     (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= e v) (= :db/ident a))) data))))))
 
-;; todo blank-multi-prop
+
+(deftest loop-breaking
+  (store/register-storage! :memory mem/create-store)
+  (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])
+            (r "bad-loop" [?x :foo ?b] :- [?a :first ?b])] ;; gets run once!
+        ax [[:data :foo :bar]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data' (store/resolve-pattern store '[?e ?a ?v])
+        data (remove #(= [:data :foo :bar] %) data')
+        node (set (map first data))]
+    (is (= 5 (count data)))
+    (is (= 2 (count node)))))
 
 (defn short-rule
   [{:keys [head body]}]

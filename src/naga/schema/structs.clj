@@ -28,7 +28,7 @@
 
 (s/defn vartest? :- s/Bool
   [x]
-  (and (symbol? x) (= \? (first (name x)))))
+  (and (symbol? x) (boolean (#{\? \%} (first (name x))))))
 
 (s/defn vars :- [Symbol]
   "Return a seq of all variables in a pattern"
