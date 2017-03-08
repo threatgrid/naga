@@ -15,6 +15,11 @@
   (assert-data [store data] "Inserts new axioms")
   (query-insert [store assertion-patterns patterns] "Resolves a set of patterns, joins them, and inserts the set of resolutions"))
 
+(defn retrieve-contents
+  "Convenience function to retrieve the contents of the entire store"
+  [store]
+  (resolve-pattern store '[?entity ?attribute ?value]))
+
 (def registered-stores (atom {}))
 
 (defn register-storage!
