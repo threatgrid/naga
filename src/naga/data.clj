@@ -22,7 +22,7 @@
                             [k (into {} (map #(apply vector (rest %)) vs))]))
                      (into {}))
         node-list (loop [nl [] n node]
-                    (if (= :naga/nil n)
+                    (if-not n
                       nl
                       (let [{f :naga/first r :naga/rest} (listmap n)]
                         (recur (conj nl f) r))))]
@@ -44,11 +44,10 @@
     (let [id (store/new-node *current-storage*)
           [value-id triples] (value-triples v)
           [next-id next-triples] (list-triples vs)]
-      [id (concat [[id (store/data-property *current-storage* value-id) value-id]
-                   [id :naga/rest next-id]]
+      [id (concat [[id (store/data-property *current-storage* value-id) value-id]]
+                  (when next-id [[id :naga/rest next-id]])
                   triples
-                  next-triples)])
-    [:naga/nil nil]))
+                  next-triples)])))
 
 (defmethod value-triples List
   [vlist]
@@ -59,7 +58,7 @@
 
 (defmethod value-triples Map      [v] (map->triples v))
 
-(defmethod value-triples nil      [v] [:naga/nil nil])
+(defmethod value-triples nil      [v] nil)
 
 (defmethod value-triples :default [v] [v nil])
 
@@ -69,7 +68,7 @@
    and builds triples around it"
   [entity-id :- s/Any
    [property value] :- [s/Keyword s/Any]]
-  (let [[value-id value-data] (value-triples value)]
+  (if-let [[value-id value-data] (value-triples value)]
     (cons [entity-id property value-id] value-data)))
 
 
@@ -128,8 +127,7 @@
   "Return all the property/value pairs for a given entity in the store."
   [store :- Storage
    entity :- s/Any]
-  (if-not (= entity :naga/nil)
-    (store/resolve-pattern store [entity '?p '?o])))
+  (store/resolve-pattern store [entity '?p '?o]))
 
 
 (s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
@@ -161,8 +159,9 @@
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
-    (if-let [remaining (:naga/rest st)]
-      (let [first-prop-elt (get-data st)
+    (when (:naga/first st)
+      (let [remaining (:naga/rest st)
+            first-prop-elt (get-data st)
             [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
