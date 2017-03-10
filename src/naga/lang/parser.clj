@@ -47,7 +47,7 @@
 
 ;; a clause with a rule
 (defparser nonbase-clause []
-  (let->> [head (>> opt-whitespace (structure))
+  (let->> [head (>> opt-whitespace (structures))
            _ (>> opt-whitespace (string ":-") opt-whitespace)
            body (structures)
            _ (>> opt-whitespace (char \.) opt-whitespace)]

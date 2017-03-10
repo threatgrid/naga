@@ -10,4 +10,5 @@
                  [the/parsatron "0.0.7"]
                  [cheshire "5.6.3"]
                  [com.datomic/datomic-free "0.9.5544"]]
+  :profiles {:dev {:plugins [[lein-kibit "0.1.3"]]}}
   :main naga.cli)

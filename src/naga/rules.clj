@@ -1,7 +1,8 @@
 (ns ^{:doc "Defines rule structures and constructors to keep them consistent"
       :author "Paula Gearon"}
     naga.rules
-    (:require [schema.core :as s]
+    (:require [clojure.set :as set]
+              [schema.core :as s]
               [naga.schema.structs :as st :refer [EPVPattern RulePatternPair Body Axiom Program]]
               [naga.util :as u])
     (:import [clojure.lang Symbol]
@@ -9,20 +10,47 @@
 
 (defn- gen-rule-name [] (name (gensym "rule-")))
 
+(defn- fresh-var
+  "Changes a var to a 'fresh' var. These start with % rather than ?"
+  [v]
+  (symbol (str \% (subs (name v) 1))))
+
+(defn- fresh-var?
+  [x]
+  (and (symbol? x) (= \% (first (name x)))))
+
+(defn- vars [constraint]
+  (if (list? constraint)
+    (filter st/vartest? (rest constraint))
+    (st/vars constraint)))
+
+(defn mark-unbound
+  "Convert a head to use fresh vars for any vars that are unbound.
+   Scans the vars in the body to identify which vars are unbound."
+  [head body]
+  (let [all-vars (fn [xs] (set (mapcat (partial filter st/vartest?) xs)))
+        head-vars (all-vars head)
+        body-vars (all-vars body)
+        unbound? (set/difference head-vars body-vars)]
+    (map (fn [p] (map #(if (unbound? %) (fresh-var %) %) p)) head)))
+
 (s/defn rule :- Rule
   "Creates a new rule"
   ([head body] (rule head body (gen-rule-name)))
   ([head body name]
    (assert (and (sequential? body) (or (empty? body) (every? sequential? body)))
            "Body must be a sequence of constraints")
-   (assert (sequential? head) "Head must be a constraint")
-   (st/new-rule head body name)))
+   (assert (and (sequential? head) (or (empty? head) (every? sequential? head)))
+           "Head must be a sequence of constraints")
+   (assert (every? (complement fresh-var?) (mapcat vars body))
+           "Fresh vars are not allowed in a body")
+   (st/new-rule (mark-unbound head body) body name)))
 
 (s/defn named-rule :- Rule
   "Creates a rule the same as an existing rule, with a different name."
   [name :- Rule
    {:keys [head body salience downstream]} :- s/Str]
-  (st/new-rule head body name downstream salience))
+  (st/new-rule (mark-unbound head body) body name downstream salience))
 
 (defn- resolve-element
   "Takes a keyword or a symbol and resolve it as a function.
@@ -54,7 +82,7 @@
   [& [f :as rs]]
   (let [[nm# rs#] (if (string? f) [f (rest rs)] [(gen-rule-name) rs])
         not-sep# (partial not= :-)
-        head# (de-ns (first (take-while not-sep# rs#)))
+        head# (map de-ns (take-while not-sep# rs#))
         body# (map de-ns (rest (drop-while not-sep# rs#)))]
     `(rule (quote ~head#) (quote ~body#) ~nm#)))
 
@@ -62,7 +90,7 @@
   "Asserts that symbols are unbound variables for a query. Return true if it passes."
   [sym]
   (let [n (name sym)]
-    (assert (= \? (first n)) (str "Unknown symbol type in rule: " n)) )
+    (assert (#{\? \%} (first n)) (str "Unknown symbol type in rule: " n)) )
   true)
 
 (defprotocol Matching
@@ -70,11 +98,11 @@
 
 (extend-protocol Matching
   Symbol
-  (compatible [x _]
-    (check-symbol x))
+  (compatible [x y]
+    (and (not (fresh-var? x)) (not (fresh-var? y)) (check-symbol x)))
   Object
   (compatible [x y]
-    (or (= x y) (and (symbol? y) (check-symbol y)))))
+    (or (= x y) (and (symbol? y) (not (fresh-var? y)) (check-symbol y)))))
 
 (s/defn match? :- s/Bool
   "Does pattern a match pattern b?"
@@ -100,7 +128,7 @@
   (let [name-bodies (u/mapmap :name :body rules)
         triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
         deps (fn [{:keys [head body name]}]
-               (st/new-rule head body name (triggers head)))]
+               (st/new-rule head body name (mapcat triggers head)))]
     {:rules (u/mapmap :name identity (map deps rules))
      :axioms axioms}))
 

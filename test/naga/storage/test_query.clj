@@ -91,3 +91,13 @@
              [?a :b ?c]
              (not= ?e ?a)]
            path4))))
+
+(deftest var-mapping
+  (let [m1 (matching-vars `[?a :rel ?c] `[?a ?b ?c] )
+        m2 (matching-vars `[?b :rel ?f] `[?a ?b ?c ?d ?e ?f])
+        m3 (matching-vars `[?b :rel ?f ?b :r2 ?e] `[?a ?b ?c ?d ?e ?f])
+        m4 (matching-vars `[?x :rel ?f ?x :r2 ?e] `[?a ?b ?c ?d ?e ?f])]
+    (is (= m1 {0 0, 2 2}))
+    (is (= m2 {0 1, 2 5}))
+    (is (= m3 {0 1, 2 5, 3 1, 5 4}))
+    (is (= m4 {2 5, 5 4}))))

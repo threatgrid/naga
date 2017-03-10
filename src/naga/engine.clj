@@ -93,16 +93,16 @@
           ;; the rule was run
           [storage
            (u/mapmap :name (comp deref :execution-count) (vals rules))]
-          
+
 
           ;; find if any patterns have updated
           (if-let [dirty-patterns (seq (keep extract-dirty-pattern
                                              status))]
             ;; rule needs to be run
             (let [counted-patterns (keep (partial resolve-count storage status)
-                                          dirty-patterns)
+                                         dirty-patterns)
 
-                  counted-set (into #{} counted-patterns)
+                  counted-set (set counted-patterns)
 
                   hinted-patterns (map #(get counted-set % %) body)]
 
@@ -142,7 +142,6 @@
    {:keys [rules axioms]} :- Program]
   (let [storage (store/get-storage-handle config)
         storage' (store/start-tx storage)
-        [output-storage stats] (->> (store/assert-data storage' axioms)
-                                    (execute rules))
+        [output-storage stats] (execute rules (store/assert-data storage' axioms))
         result-storage (store/commit-tx output-storage)]
     [result-storage stats]))

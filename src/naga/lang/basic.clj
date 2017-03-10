@@ -6,7 +6,7 @@
             [the.parsatron :refer :all]
             [naga.schema.structs :as st]))
 
-(defn choice* 
+(defn choice*
   "choice with backtracking."
   [& args]
   (apply choice (map attempt args)))
@@ -60,7 +60,7 @@
 
 ;; This does not include all legal characters.
 ;; Consider some others in future, especially >
-(def ns-word (many1 (choice (letter) (char \_) (char \-) (char \:))))
+(def ns-word (many1 (choice (letter) (digit) (char \_) (char \-) (char \:))))
 
 (def word (many1 (letter)))
 
@@ -73,32 +73,32 @@
 
 (defparser integer []
   (let->> [i (either digits (signed-digits))]
-    (always (Long/parseLong (apply str i)))))
+    (always (Long/parseLong (str/join i)))))
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
            f (>> (char \.) (many1 (digit)))]
-    (always (Double/parseDouble (apply str (apply str i) \. f)))))
+    (always (Double/parseDouble (apply str (str/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
-  (let->> [s (many1 (between (char \') (char \') (many non-squote))) ]
-    (always (apply str (flatten (interpose \' s))))))
+  (let->> [s (many1 (between (char \') (char \') (many non-squote)))]
+    (always (str/join (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
   (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
-    (always (apply str (flatten (interpose \" s))))))
+    (always (str/join (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
 
 ;; variables start with a capital. Internally they start with ?
 (defparser variable []
   (let->> [f (upper-case-letter)
-           r (many (letter))]
-    (always (symbol (apply str "?" (Character/toLowerCase f) r) ))))
+           r (many (choice (letter) (digit) (char \_) (char \-)))]
+    (always (symbol (apply str "?" (Character/toLowerCase f) r)))))
 
 (defn build-keyword
   "Creates a keyword from a parsed word token"
@@ -106,7 +106,8 @@
   (let [[kns kname :as w] (str/split wrd #":")
         parts (count w)]
     ;; use cond without a default to return nil
-    (cond (= 2 parts) (cond (empty? kns) (keyword kname)
+    (cond (Character/isDigit (first wrd)) nil
+          (= 2 parts) (cond (empty? kns) (keyword kname)
                             (seq kname) (keyword kns kname))
           (= 1 parts) (if-not (str/ends-with? wrd ":")
                         (keyword kns)))))
@@ -114,7 +115,7 @@
 ;; atomic values, like a predicate, are represented as a keyword
 (defparser kw []
   (let->> [r ns-word]
-    (let [wrd (apply str r)]
+    (let [wrd (str/join r)]
       (if-let [k (build-keyword wrd)]
         (always k)
         (throw (fail (str "Invalid identifier: " wrd)))))))
