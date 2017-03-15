@@ -2,6 +2,7 @@
       :author "Paula Gearon"}
     naga.storage.datomic.core
   (:require [naga.store :as store]
+            [naga.storage.datomic.init :as init]
             [schema.core :as s]
             [naga.schema.structs :as st
                                  :refer [EPVPattern FilterPattern Pattern Results Value]]
@@ -22,7 +23,7 @@
                   Date :naga/first-d
                   UUID :naga/first-uu
                   URI :naga/first-u
-                  List :naga/first-list
+                  List :naga/first
                   Map :naga/first})
 
 (def type->contains {String :naga/contains-s
@@ -34,7 +35,7 @@
                      Date :naga/contains-d
                      UUID :naga/contains-uu
                      URI :naga/contains-u
-                     List :naga/contains-list
+                     List :naga/contains
                      Map :naga/contains})
 
 (defn generic-type
@@ -77,6 +78,8 @@
   "Determines the transaction ID for a database"
   [db]
   (d/t->tx (d/basis-t db)))
+
+
 
 (defrecord DatomicStore [connection db tx-id log]
   Storage
@@ -151,10 +154,19 @@
     uri
     (str "datomic:" uri)))
 
+(s/defn init
+  "Initializes storage, and returns the result of any transaction. Returns nil if no transaction was needed."
+  [connection]
+  (let [db (d/db connection)
+        tx-data (init/initializing-data db)]
+    (when (seq tx-data)
+      (d/transact connection tx-data))))
+
 (s/defn create-store :- Storage
   "Factory function to create a store"
   [{uri :uri :as config}]
   (let [uri (build-uri uri)]
     (let [connection (d/connect uri)
+          _ (init connection)
           db (d/db connection)]
       (->DatomicStore connection db nil nil))))

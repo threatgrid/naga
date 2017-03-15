@@ -12,6 +12,15 @@
 
 (def Triple [s/Any s/Keyword s/Any])
 
+(defn get-naga-first
+  "Finds the naga/first property, in a map, and gets the value."
+  [struct]
+  (let [first-val? (fn [[k v]]
+                     (and (= "naga" (namespace k))
+                          (str/starts-with? (name k) "first")
+                          v))]
+    (some first-val? struct)))
+
 (s/defn containership-triples
   "Finds the list of entity nodes referred to in a list and builds
    triples describing a flat 'contains' property"
@@ -24,7 +33,8 @@
         node-list (loop [nl [] n node]
                     (if-not n
                       nl
-                      (let [{f :naga/first r :naga/rest} (listmap n)]
+                      (let [{r :naga/rest :as lm} (listmap n)
+                            f (get-naga-first lm)]
                         (recur (conj nl f) r))))]
     (map (fn [n] [node (store/container-property *current-storage* n) n]) node-list)))
 
@@ -143,14 +153,6 @@
 
 (declare pairs->json recurse-node)
 
-(s/defn get-data
-  "Finds the naga/first property, in a map, and gets the value."
-  [m :- {s/Keyword s/Any}]
-  (->> m
-       (filter (fn [[k v]] (and (= "naga" (namespace k))
-                                (str/includes? (name k) "first"))))
-       first))
-
 (s/defn build-list :- [s/Any]
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
@@ -159,9 +161,9 @@
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
-    (when (:naga/first st)
+    (when (get-naga-first st)
       (let [remaining (:naga/rest st)
-            first-prop-elt (get-data st)
+            first-prop-elt (get-naga-first st)
             [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
