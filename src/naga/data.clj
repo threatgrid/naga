@@ -13,7 +13,7 @@
 (def Triple [s/Any s/Keyword s/Any])
 
 (defn get-naga-first
-  "Finds the naga/first property, in a map, and gets the value."
+  "Finds the naga/first property in a map, and gets the value."
   [struct]
   (let [first-val? (fn [[k v]]
                      (and (= "naga" (namespace k))
@@ -36,7 +36,9 @@
                       (let [{r :naga/rest :as lm} (listmap n)
                             f (get-naga-first lm)]
                         (recur (conj nl f) r))))]
-    (map (fn [n] [node (store/container-property *current-storage* n) n]) node-list)))
+    (map
+     (fn [n] [node (store/container-property *current-storage* n) n])
+     node-list)))
 
 (defmulti value-triples
   "Converts a value into a list of triples.

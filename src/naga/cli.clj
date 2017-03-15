@@ -11,16 +11,24 @@
             [naga.data :as data]
             [naga.storage.memory.core])
   (:import [clojure.lang ExceptionInfo]
+           [java.net URI]
            [java.io File]))
 
-(def stores (map name (keys @store/registered-stores)))
+(def stores (set (map name (keys @store/registered-stores))))
 
 (def valid-output? #(.exists (.getParentFile (.getAbsoluteFile (File. %)))))
 (def valid-input? #(.exists (File. %)))
 
+(def uri #(try (URI. %) (catch Exception _)))
+
 (def cli-options
   [[nil "--storage STRING" "Select store type"
-    :validate [(set stores) "Must be a registered storage type."]]
+    :validate [stores "Must be a registered storage type."]]
+   [nil "--uri STRING" "URI for storage"
+    :parse-fn uri
+    :validate [identity "Invalid storage URL"]]
+   [nil "--init STRING" "Initialization data"
+    :validate [valid-input? "Invalid initialization data file"]]
    [nil "--json STRING" "Filename for input json"
     :validate [valid-input? "Input file does not exist."]]
    [nil "--out STRING" "Filename for output json"
@@ -42,6 +50,19 @@
      summary
      (str "Store types: " (vec stores))
      ""]))
+
+(defn storage-configuration
+  "Reads storage parameters, and builds an appropriate configuration structure"
+  [storage uri init]
+  (let [store-from-uri (fn [u]
+                         ;; may want this to be more complex in future
+                         (let [s (.getScheme u)]
+                           (stores s)))
+        store-type (and storage (store-from-uri uri))]
+    (when (and uri (nil? store-type)) (exit "Unable to determine storage type for: " uri))
+    {:type (or store-type :memory)
+     :uri uri
+     :init init}))
 
 (defn run-all
   "Runs a program, and returns the data processed, the results, and the stats.
@@ -101,12 +122,11 @@
 
 (defn json-program
   "Runs a program over data in a JSON file"
-  [in-stream json-file out-file storage]
+  [in-stream json-file out-file storage uri]
   (when-not out-file
     (exit 2 "No output json file specified"))
-  (let [; TODO: handle storage URIs to determine type and connection
-        ; fresh-store (instantiate-storage storage)
-        fresh-store (store/get-storage-handle {:type :memory})
+  (let [store-config (storage-configuration storage uri)
+        fresh-store (store/get-storage-handle store-config)
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
@@ -125,7 +145,7 @@
 
 (defn -main [& args]
   (try
-    (let [{{:keys [halp json out storage]} :options,
+    (let [{{:keys [halp json out storage uri]} :options,
            arguments :arguments :as opts} (parse-opts args cli-options)]
 
       (when halp (exit 1 (usage opts)))
@@ -133,7 +153,7 @@
                               (io/input-stream filename)
                               *in*)]
         (if json
-          (json-program in-stream json out storage)
+          (json-program in-stream json out storage uri)
           (logic-program in-stream))))
     (catch ExceptionInfo e
       (binding [*out* *err*]
