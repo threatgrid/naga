@@ -12,6 +12,7 @@
            [datomic.db DbId]
            [clojure.lang Symbol]
            [java.util Map List Date UUID]
+           [java.io File]
            [java.net URI]))
 
 (def type->first {String :naga/first-s
@@ -146,13 +147,19 @@
 
 
 (s/defn build-uri :- String
-  "Creates a Datomic URI, or reports an error if not valid"
-  [uri :- String]
-  (when (> 2 (count (str/split uri #"://")))
-    (throw (ex-info (str "Invalid Datomic URI: " uri) {:uri uri})))
-  (if (str/starts-with? uri "datomic:")
-    uri
-    (str "datomic:" uri)))
+  "Reads a configuration map, or creates a Datomic URI. Reports an error if both are not valid"
+  [uri :- String
+   m :- String]
+  (if m
+    (do
+      (when (> 2 (count (str/split uri #"://")))
+        (throw (ex-info (str "Invalid Datomic URI: " uri) {:uri uri})))
+      (if (str/starts-with? uri "datomic:")
+        uri
+        (str "datomic:" uri)))
+    (try
+      (edn/read-string m)
+      (catch Exception _ (build-uri uri nil)))))
 
 (s/defn init
   "Initializes storage, and returns the result of any transaction. Returns nil if no transaction was needed."
@@ -162,11 +169,30 @@
     (when (seq tx-data)
       (d/transact connection tx-data))))
 
+(s/defn load
+  "Silently loads a path, or returns nil"
+  [path]
+  (when (.exists (File. path))
+    (try (slurp path) (catch Exception _))))
+
+(s/defn user-init
+  "Initializes the database with user data"
+  [connection user-data-file]
+  (if-let [data-text (slurp user-data-file)]
+    (let [data (edn/read-string data-text)]
+      (d/transact connection data))))
+
 (s/defn create-store :- Storage
   "Factory function to create a store"
-  [{uri :uri :as config}]
-  (let [uri (build-uri uri)]
-    (let [connection (d/connect uri)
-          _ (init connection)
-          db (d/db connection)]
-      (->DatomicStore connection db nil nil))))
+  [{uri :uri user-data :init mp :map :as config}]
+  (let [uri (build-uri uri mp)
+        connection (if (create-database uri)
+                     (let [conn (d/connect uri)]
+                       (init conn)
+                       conn)
+                     (d/connect uri))
+        _ (user-init connection user-data)
+        db (d/db connection)]
+    (->DatomicStore connection db nil nil)))
+
+(store/register-storage! :datomic create-store)

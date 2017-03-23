@@ -15,11 +15,11 @@
 (defn get-naga-first
   "Finds the naga/first property in a map, and gets the value."
   [struct]
-  (let [first-val? (fn [[k v]]
+  (let [first-pair? (fn [[k v :as p]]
                      (and (= "naga" (namespace k))
                           (str/starts-with? (name k) "first")
-                          v))]
-    (some first-val? struct)))
+                          p))]
+    (some first-pair? struct)))
 
 (s/defn containership-triples
   "Finds the list of entity nodes referred to in a list and builds
@@ -34,7 +34,7 @@
                     (if-not n
                       nl
                       (let [{r :naga/rest :as lm} (listmap n)
-                            f (get-naga-first lm)]
+                            [_ f] (get-naga-first lm)]
                         (recur (conj nl f) r))))]
     (map
      (fn [n] [node (store/container-property *current-storage* n) n])
@@ -163,9 +163,8 @@
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
-    (when (get-naga-first st)
+    (when-let [first-prop-elt (get-naga-first st)]
       (let [remaining (:naga/rest st)
-            first-prop-elt (get-naga-first st)
             [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list

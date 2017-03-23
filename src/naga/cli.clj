@@ -19,13 +19,13 @@
 (def valid-output? #(.exists (.getParentFile (.getAbsoluteFile (File. %)))))
 (def valid-input? #(.exists (File. %)))
 
-(def uri #(try (URI. %) (catch Exception _)))
+(def as-uri #(try (URI. %) (catch Exception _)))
 
 (def cli-options
   [[nil "--storage STRING" "Select store type"
     :validate [stores "Must be a registered storage type."]]
    [nil "--uri STRING" "URI for storage"
-    :parse-fn uri
+    :parse-fn as-uri
     :validate [identity "Invalid storage URL"]]
    [nil "--init STRING" "Initialization data"
     :validate [valid-input? "Invalid initialization data file"]]
@@ -36,8 +36,8 @@
    ["-h" "--halp" "Print help"]])
 
 (defn exit
-  [status message]
-  (throw (ex-info message {:status status})))
+  [status & messages]
+  (throw (ex-info (apply str messages) {:status status})))
 
 (defn usage
   [{summary :summary}]
@@ -53,14 +53,16 @@
 
 (defn storage-configuration
   "Reads storage parameters, and builds an appropriate configuration structure"
-  [storage uri init]
-  (let [store-from-uri (fn [u]
+  [{:keys [type uri init]}]
+  (let [uri (as-uri uri)
+        store-from-uri (fn [u]
                          ;; may want this to be more complex in future
-                         (let [s (.getScheme u)]
-                           (stores s)))
-        store-type (and storage (store-from-uri uri))]
-    (when (and uri (nil? store-type)) (exit "Unable to determine storage type for: " uri))
-    {:type (or store-type :memory)
+                         (when u
+                           (let [s (.getScheme u)]
+                             (stores s))))
+        store-type (or type (store-from-uri uri))]
+    (when (and uri (nil? store-type)) (exit 1 "Unable to determine storage type for: " uri))
+    {:type (if store-type (keyword store-type) :memory)
      :uri uri
      :init init}))
 
@@ -68,12 +70,12 @@
   "Runs a program, and returns the data processed, the results, and the stats.
    Takes an input stream. Returns a map of:
   :input, :output, :stats"
-  [in]
+  [in config]
         ;; read the program
   (let [{:keys [rules axioms]} (pabu/read-stream in)
 
-        ;; instantiate a database. For the demo we're using "in-memory"
-        fresh-store (store/get-storage-handle {:type :memory})
+        ;; instantiate a database. Config may include initialization data
+        fresh-store (store/get-storage-handle config)
 
         ;; assert the initial axioms. The program can do that, but
         ;; we want to do it here so we can see the original store
@@ -82,7 +84,7 @@
 
         ;; Configure the storage the program will use. Provide a store
         ;; so the program won't try to create its own
-        config {:type :memory :store original-store}
+        config (assoc config :store original-store)
 
         ;; compile the program
         program (r/create-program rules [])
@@ -113,8 +115,8 @@
     (str (nm p) "(" (nm e) ", " (nm v) ").")))
 
 (defn logic-program
-  [in-stream]
-  (let [{:keys [input output stats]} (run-all in-stream)]
+  [in-stream config]
+  (let [{:keys [input output stats]} (run-all in-stream config)]
       (println "INPUT DATA")
       (doseq [a input] (println (predicate-string a)))
       (println "\nNEW DATA")
@@ -122,19 +124,17 @@
 
 (defn json-program
   "Runs a program over data in a JSON file"
-  [in-stream json-file out-file storage uri]
+  [in-stream json-file out-file store-config]
   (when-not out-file
     (exit 2 "No output json file specified"))
-  (let [store-config (storage-configuration storage uri)
-        fresh-store (store/get-storage-handle store-config)
+  (let [fresh-store (store/get-storage-handle store-config)
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
         json-data (data/stream->triples basic-store json-file)
         loaded-store (store/assert-data basic-store json-data)
 
-        config {:type :memory ; TODO: type from flag+URI (store-type storage)
-                :store loaded-store}
+        config (assoc store-config :store loaded-store)
 
         program (r/create-program rules [])
 
@@ -145,16 +145,17 @@
 
 (defn -main [& args]
   (try
-    (let [{{:keys [halp json out storage uri]} :options,
-           arguments :arguments :as opts} (parse-opts args cli-options)]
+    (let [{{:keys [halp json out storage uri init] :as options} :options,
+           arguments :arguments :as opts} (parse-opts args cli-options)
+          storage-config (storage-configuration options)]
 
       (when halp (exit 1 (usage opts)))
       (with-open [in-stream (if-let [filename (first arguments)]
                               (io/input-stream filename)
                               *in*)]
         (if json
-          (json-program in-stream json out storage uri)
-          (logic-program in-stream))))
+          (json-program in-stream json out storage-config)
+          (logic-program in-stream storage-config))))
     (catch ExceptionInfo e
       (binding [*out* *err*]
         (println (.getMessage e))))))
