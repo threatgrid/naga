@@ -9,7 +9,8 @@
             [naga.engine :as e]
             [naga.store :as store]
             [naga.data :as data]
-            [naga.storage.memory.core])
+            [naga.storage.memory.core]
+            [naga.storage.datomic.core])
   (:import [clojure.lang ExceptionInfo]
            [java.net URI]
            [java.io File]))
@@ -19,7 +20,7 @@
 (def valid-output? #(.exists (.getParentFile (.getAbsoluteFile (File. %)))))
 (def valid-input? #(.exists (File. %)))
 
-(def as-uri #(try (URI. %) (catch Exception _)))
+(def as-uri #(if (instance? URI %) % (try (URI. %) (catch Exception _))))
 
 (def cli-options
   [[nil "--storage STRING" "Select store type"
@@ -58,8 +59,9 @@
         store-from-uri (fn [u]
                          ;; may want this to be more complex in future
                          (when u
-                           (let [s (.getScheme u)]
-                             (stores s))))
+                           (let [s (.getScheme u)
+                                 fs (and s (re-find #"[^:]*" s))]
+                             (stores fs))))
         store-type (or type (store-from-uri uri))]
     (when (and uri (nil? store-type)) (exit 1 "Unable to determine storage type for: " uri))
     {:type (if store-type (keyword store-type) :memory)

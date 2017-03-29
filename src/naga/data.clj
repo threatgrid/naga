@@ -98,7 +98,7 @@
   [id :- s/Any]
   (if (keyword? id)
     id
-    (keyword "naga" (str "id-" id))))
+    (store/node-label *current-storage* id)))
 
 
 (s/defn ident-map->triples :- [s/Any [Triple]]

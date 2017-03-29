@@ -369,6 +369,9 @@
         name
         (keyword "mem")))
 
+  (node-id [this n]
+    (subs (name n) 5))
+
   (node-type? [this prop value]
     (and (keyword? value)
          (= "mem" (namespace value))

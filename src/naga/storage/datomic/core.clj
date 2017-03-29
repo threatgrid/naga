@@ -7,6 +7,7 @@
             [naga.schema.structs :as st
                                  :refer [EPVPattern FilterPattern Pattern Results Value]]
             [clojure.string :as str]
+            [clojure.edn :as edn]
             [datomic.api :as d])
   (:import [naga.store Storage]
            [datomic.db DbId]
@@ -105,7 +106,10 @@
       (->DatomicStore connection db-after nil nil)))
 
   (new-node [_]
-    (d/tempid :db.part/naga))
+    (d/tempid :naga/data))  ;; this matches the partition in init/pre-init-data
+
+  (node-id [_ n]
+    (subs (str (:idx n)) 1))
 
   (node-type? [_ prop value]
     (instance? DbId value))
@@ -135,8 +139,11 @@
   (assert-data [_ data]
     ;; if in a transaction, speculatively add data to the current database
     ;; otherwise insert normally
-    (let [tx-fn (if tx-id d/with d/transact)
-          {db-after :dbafter} @(tx-fn db data)]
+    (let [tx-fn (if tx-id
+                  (partial d/with (or db (d/db connection)))
+                  (partial d/transact connection))
+          datomic-assertions (map (partial cons :db/add) data)
+          {db-after :dbafter} @(tx-fn datomic-assertions)]
       ;; return the new state. Note the TX ID and log do not change,
       ;; as these have the replay point, if in a transaction.
       (->DatomicStore connection db-after tx-id log)))
@@ -148,37 +155,39 @@
 
 (s/defn build-uri :- String
   "Reads a configuration map, or creates a Datomic URI. Reports an error if both are not valid"
-  [uri :- String
+  [uri :- URI
    m :- String]
   (if m
-    (do
-      (when (> 2 (count (str/split uri #"://")))
-        (throw (ex-info (str "Invalid Datomic URI: " uri) {:uri uri})))
-      (if (str/starts-with? uri "datomic:")
-        uri
-        (str "datomic:" uri)))
     (try
       (edn/read-string m)
-      (catch Exception _ (build-uri uri nil)))))
+      (catch Exception _ (build-uri uri nil)))
+    (let [uri-str (str uri)]
+      (when (> 2 (count (str/split uri-str #"://")))
+        (throw (ex-info (str "Invalid Datomic URI: " uri-str) {:uri uri-str})))
+      (if (str/starts-with? uri-str "datomic:")
+        uri-str
+        (str "datomic:" uri-str)))))
 
 (s/defn init
   "Initializes storage, and returns the result of any transaction. Returns nil if no transaction was needed."
   [connection]
+  (d/transact connection init/pre-init-data)
   (let [db (d/db connection)
         tx-data (init/initializing-data db)]
     (when (seq tx-data)
       (d/transact connection tx-data))))
 
-(s/defn load
+(s/defn load-from-path
   "Silently loads a path, or returns nil"
   [path]
-  (when (.exists (File. path))
+  (when (and path (.exists (File. path)))
     (try (slurp path) (catch Exception _))))
 
 (s/defn user-init
   "Initializes the database with user data"
+  ;; TODO: this naively reads edn. Load pairs or use auto-schema.
   [connection user-data-file]
-  (if-let [data-text (slurp user-data-file)]
+  (if-let [data-text (load-from-path user-data-file)]
     (let [data (edn/read-string data-text)]
       (d/transact connection data))))
 
@@ -186,7 +195,7 @@
   "Factory function to create a store"
   [{uri :uri user-data :init mp :map :as config}]
   (let [uri (build-uri uri mp)
-        connection (if (create-database uri)
+        connection (if (d/create-database uri)
                      (let [conn (d/connect uri)]
                        (init conn)
                        conn)

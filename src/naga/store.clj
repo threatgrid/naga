@@ -6,6 +6,7 @@
   (start-tx [store] "Starts a transaction, if supported")
   (commit-tx [store] "Commits a transaction, if supported")
   (new-node [store] "Allocates a node for the store")
+  (node-id [store n] "Returns a id for a node. Numbers are good")
   (node-type? [store p n] "Returns true if the value refered to by a property can be a graph node")
   (data-property [store data] "Returns the property to use for given data. Must be in the naga namespace, and start with 'first'.")
   (container-property [store data] "Returns the property to use to indicate a containership relation for given data. Must be in the naga namespace")
@@ -19,6 +20,11 @@
   "Convenience function to retrieve the contents of the entire store"
   [store]
   (resolve-pattern store '[?entity ?attribute ?value]))
+
+(defn node-label
+  "Returns a keyword label for a node"
+  [s n]
+  (keyword "naga" (str "id-" (node-id s n))))
 
 (def registered-stores (atom {}))
 
