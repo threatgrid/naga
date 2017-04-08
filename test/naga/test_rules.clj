@@ -111,7 +111,7 @@
     (is (apply = node*))
     (is (some #(= [node :first :a] %) data))
     (is (some #(= [node :second :bar] %) data))
-    (is (some #(= [node :db/ident node] %) data)))
+    (is (some #(= [node :db/ident (store/node-label store node)] %) data)))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y]
                [?a :first :b] [?a :third ?x] :- [?x :foo ?y])]
         ax [[:data :foo :bar]]
@@ -128,7 +128,9 @@
     (is (some (fn [[e a v]] (and (nodes e) (= [:third :data] [a v]))) data))
     (is (= 2 (count
               (filter (fn [[e a v]]
-                        (and (= e v) (nodes e) (= :db/ident a)))
+                        (and (nodes e)
+                             (= :db/ident a)
+                             (= (store/node-label store e) v)))
                       data)))))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
         ax [[:data :foo :bar] [:other :foo :baz]]
@@ -142,7 +144,7 @@
     (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
-    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= e v) (= :db/ident a))) data))))))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= :db/ident a) (= (store/node-label store e) v))) data))))))
 
 
 (deftest loop-breaking

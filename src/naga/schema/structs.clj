@@ -101,6 +101,11 @@
 (def EntityPropValAxiomElt
   (s/conditional (complement symbol?) s/Any))
 
+(def Triple
+  [(s/one s/Any "entity")
+   (s/one s/Any "property")
+   (s/one s/Any "value")])
+
 (def Axiom
   [(s/one EntityPropAxiomElt "entity")
    (s/one EntityPropAxiomElt "property")

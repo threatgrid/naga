@@ -2,6 +2,7 @@
   "Tests internals of the query portion of the memory storage"
   (:require [naga.storage.memory.core :refer :all]
             [naga.storage.memory.index :refer [Graph]]
+            [naga.storage.store-util :refer [matching-vars]]
             [naga.store :refer :all]
             [naga.util :refer [mapmap]]
             [clojure.test :refer :all]

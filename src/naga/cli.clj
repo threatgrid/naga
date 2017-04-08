@@ -54,7 +54,7 @@
 
 (defn storage-configuration
   "Reads storage parameters, and builds an appropriate configuration structure"
-  [{:keys [type uri init]}]
+  [{:keys [type uri init json]}]
   (let [uri (as-uri uri)
         store-from-uri (fn [u]
                          ;; may want this to be more complex in future
@@ -62,7 +62,8 @@
                            (let [s (.getScheme u)
                                  fs (and s (re-find #"[^:]*" s))]
                              (stores fs))))
-        store-type (or type (store-from-uri uri))]
+        store-type (or type (store-from-uri uri))
+        init (or init json)]  ;; if there is no init file, then autodetect from the json
     (when (and uri (nil? store-type)) (exit 1 "Unable to determine storage type for: " uri))
     {:type (if store-type (keyword store-type) :memory)
      :uri uri
