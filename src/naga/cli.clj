@@ -38,7 +38,7 @@
 
 (defn exit
   [status & messages]
-  (throw (ex-info (apply str messages) {:status status})))
+  (throw (ex-info (string/join messages) {:status status})))
 
 (defn usage
   [{summary :summary}]

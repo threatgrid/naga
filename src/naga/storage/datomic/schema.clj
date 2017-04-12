@@ -47,7 +47,7 @@
   "Generates data for new attribute definitions, based on a sequence of name/type string pairs.
    Returns a sequence of transaction data sequences, which will need to be transacted in order."
   [pairs]
-  (let [grouped (into [] (map (fn [[k v]] [k (vec (set v))]) (group-by first pairs)))
+  (let [grouped (vec (map (fn [[k v]] [k (vec (set v))]) (group-by first pairs)))
         [simple-pairs complex-pairs] (u/divide #(= 1 (count (second %))) grouped)]
     (concat
      (map simple-def simple-pairs)
