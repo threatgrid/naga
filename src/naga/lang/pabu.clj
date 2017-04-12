@@ -2,7 +2,7 @@
 Parses code and returns Naga rules."
       :author "Paula Gearon"}
   naga.lang.pabu
-  (:require [naga.schema.structs :as structs :refer [Axiom Program]]
+  (:require [naga.schema.structs :as structs :refer [Axiom Program Triple]]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
             [naga.util :as u]
@@ -20,11 +20,6 @@ Parses code and returns Naga rules."
   {:type (s/eq :axiom)
    :axiom [(s/one s/Keyword "Property")
            (s/one Args "args")]})
-
-(def Triple
-  [(s/one s/Any "entity")
-   (s/one s/Any "property")
-   (s/one s/Any "value")])
 
 (s/defn triplets :- [Triple]
   "Converts raw parsed predicate information into a seq of triples"

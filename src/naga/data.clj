@@ -12,6 +12,15 @@
 
 (def Triple [s/Any s/Keyword s/Any])
 
+(defn get-naga-first
+  "Finds the naga/first property in a map, and gets the value."
+  [struct]
+  (let [first-pair? (fn [[k v :as p]]
+                     (and (= "naga" (namespace k))
+                          (str/starts-with? (name k) "first")
+                          p))]
+    (some first-pair? struct)))
+
 (s/defn containership-triples
   "Finds the list of entity nodes referred to in a list and builds
    triples describing a flat 'contains' property"
@@ -24,9 +33,12 @@
         node-list (loop [nl [] n node]
                     (if-not n
                       nl
-                      (let [{f :naga/first r :naga/rest} (listmap n)]
+                      (let [{r :naga/rest :as lm} (listmap n)
+                            [_ f] (get-naga-first lm)]
                         (recur (conj nl f) r))))]
-    (map (fn [n] [node (store/container-property *current-storage* n) n]) node-list)))
+    (map
+     (fn [n] [node (store/container-property *current-storage* n) n])
+     node-list)))
 
 (defmulti value-triples
   "Converts a value into a list of triples.
@@ -86,7 +98,7 @@
   [id :- s/Any]
   (if (keyword? id)
     id
-    (keyword "naga" (str "id-" id))))
+    (store/node-label *current-storage* id)))
 
 
 (s/defn ident-map->triples :- [s/Any [Triple]]
@@ -95,7 +107,7 @@
   (let [[id triples] (map->triples j)]
     (if (:db/ident j)
       triples
-      (cons [id :db/ident (name-for id)] triples))))
+      (concat [[id :db/ident (name-for id)] [id :naga/json.entity true]] triples))))
 
 
 (s/defn json->triples :- [Triple]
@@ -143,14 +155,6 @@
 
 (declare pairs->json recurse-node)
 
-(s/defn get-data
-  "Finds the naga/first property, in a map, and gets the value."
-  [m :- {s/Keyword s/Any}]
-  (->> m
-       (filter (fn [[k v]] (and (= "naga" (namespace k))
-                                (str/includes? (name k) "first"))))
-       first))
-
 (s/defn build-list :- [s/Any]
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
@@ -159,13 +163,14 @@
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
-    (when (:naga/first st)
+    (when-let [first-prop-elt (get-naga-first st)]
       (let [remaining (:naga/rest st)
-            first-prop-elt (get-data st)
             [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
-        (cons first-elt (build-list store (property-values store remaining)))))))
+        (if remaining
+          (cons first-elt (build-list store (property-values store remaining)))
+          (list first-elt))))))
 
 
 (s/defn recurse-node :- s/Any
@@ -187,7 +192,8 @@
         (map (partial recurse-node store))
         (into {}))
    :db/id
-   :db/ident))
+   :db/ident
+   :naga/json.entity))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
@@ -210,7 +216,7 @@
 (s/defn store->json :- [{s/Keyword s/Any}]
   "Pulls all top level JSON out of a store"
   [store :- Storage]
-  (->> (store/resolve-pattern store '[?e :db/ident ?id])
+  (->> (store/query store '[?e] '[[?e :naga/json.entity true] [?e :db/ident ?id]])
        (map first)
        (map (partial id->json store))))
 

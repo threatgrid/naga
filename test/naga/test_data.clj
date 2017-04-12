@@ -24,11 +24,15 @@
                                  "    {\"a\": 2},"
                                  "    [\"nested\"]"
                                  "]}]"))]
-    (is (= [[:test/n1 :db/ident :test/n1] [:test/n1 :prop "val"]] m1))
     (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
+            [:test/n1 :prop "val"]] m1))
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
     (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
@@ -38,10 +42,13 @@
             [:test/n2 :naga/contains 42]
             [:test/n2 :naga/contains 54]] m3))
     (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n2 :db/ident :test/n2]
+            [:test/n2 :naga/json.entity true]
             [:test/n2 :prop "val2"]] m4))
     (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
@@ -69,11 +76,15 @@
         m5 (json->triples (st/new-store)
                           [{:prop "val"
                             :arr [{:a 1} {:a 2} ["nested"]]}])]
-    (is (= [[:test/n1 :db/ident :test/n1] [:test/n1 :prop "val"]] m1))
     (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
+            [:test/n1 :prop "val"]] m1))
+    (is (= [[:test/n1 :db/ident :test/n1]
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
     (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
@@ -83,10 +94,13 @@
             [:test/n2 :naga/contains 42]
             [:test/n2 :naga/contains 54]] m3))
     (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n2 :db/ident :test/n2] 
+            [:test/n2 :naga/json.entity true]
             [:test/n2 :prop "val2"]] m4))
     (is (= [[:test/n1 :db/ident :test/n1] 
+            [:test/n1 :naga/json.entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
@@ -106,22 +120,22 @@
   [data]
   (let [m (json->triples empty-store data)
         new-db (store/assert-data empty-store m)]
-    (store->json new-db)))
+    (set (store->json new-db))))
 
 (deftest test-round-trip
-  (let [d1 [{:prop "val"}]
+  (let [d1 #{{:prop "val"}}
         dr1 (round-trip d1)
 
-        d2 [{:prop "val", :p2 2}]
+        d2 #{{:prop "val", :p2 2}}
         dr2 (round-trip d2)
 
-        d3 [{:prop "val", :p2 22, :p3 [42 54]}]
+        d3 #{{:prop "val", :p2 22, :p3 [42 54]}}
         dr3 (round-trip d3)
 
-        d4 [{:prop "val"} {:prop "val2"}]
+        d4 #{{:prop "val"} {:prop "val2"}}
         dr4 (round-trip d4)
 
-        d5 [{:prop "val" :arr [{:a 1} {:a 2} ["nested"]]}]
+        d5 #{{:prop "val" :arr [{:a 1} {:a 2} ["nested"]]}}
         dr5 (round-trip d5)]
     (is (= d1 dr1))
     (is (= d2 dr2))
