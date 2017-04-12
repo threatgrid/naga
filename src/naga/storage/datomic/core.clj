@@ -109,6 +109,32 @@
 
 (defn dvar? [v] (and (symbol? v) (= \? (first (name v)))))
 
+(defn expand-symbol
+  "Converts a pattern with a variable attribute into a pair
+  that converts the requested attribute into its identifier.
+  Returns a seq of patterns."
+  [sym-test? [e a v :as pattern]]
+  (if (sym-test? a)
+    (let [ae (symbol (str (name a) ".x"))]
+      [[e ae v] [ae :db/ident a]])
+    [pattern]))
+
+(defn get-attrib-projection
+  "Returns a projection function, given a pattern and the current attributes."
+  [{o :originals} [_ attr _ :as p]]
+  (if (symbol? attr)
+    (let [vars (filter symbol? p)
+          aindexes (set (keep-indexed (fn [i v] (when (= v attr) i)) vars))]
+      (fn [results]
+        (map
+         (fn [row]
+           (vec (map-indexed (fn [i v] (if (aindexes i) (o v v) v)) row)))
+         results)))
+    identity))
+
+;; TODO: alias projection
+;; if any attribute in a query patterns is a symbol, AND that symbol is in the output
+;; then update the projection to rewrite that symbol as per get-attrib-projection
 
 (defrecord DatomicStore [connection db attributes tx-id log]
   Storage
@@ -122,13 +148,13 @@
       (let [latest-db (d/db connection)
             latest-log (d/log connection)
             latest-tx (tx latest-db)]
-        (->DatomicStore connection latest-db attributes latest-tx log))))
+        (->DatomicStore connection latest-db attributes latest-tx latest-log))))
 
   (commit-tx [this]
           ;; retrieve all the assertions after the recorded transaction
     (let [data (mapcat :data (d/tx-range log (inc tx-id) nil))
           ;; replay those assertions into the database
-          {db-after :dbafter} @(d/transact connection data)]
+          {db-after :db-after} @(d/transact connection data)]
       ;; return the new state of the database
       (->DatomicStore connection db-after attributes nil nil)))
 
@@ -139,7 +165,15 @@
     (subs (str (:idx n)) 1))
 
   (node-type? [_ prop value]
-    (instance? DbId value))
+    ;; NB: an aliased property which can be a Long may incorrectly return true when value is Long.
+    ;; Rebuilding the structure will identify that the long does not refer to actual data.
+    (or (instance? DbId value)
+        (if-let [at (get (:types attributes) prop)]  ;; look for the attribute type
+          ;; is the attribute a ref?
+          (= :db.type/ref at)
+          ;; attribute not known. Therefore aliased
+          (and (:db.type/ref (get (:overloads attributes) prop)) ;; is ref possible?
+               (instance? Long value)))))  ;; ensure it's compatible with ref
   
   (data-property [_ data]
     (kw-from-type (generic-type data) "first"))
@@ -148,8 +182,10 @@
     (kw-from-type (generic-type data) "contains"))
 
   (resolve-pattern [this pattern]
-    (let [vars (filter symbol? pattern)]
-      (d/q {:find vars :where [pattern]} db)))
+    (let [vars (filter symbol? pattern)
+          patterns (expand-symbol symbol? pattern)
+          aproject (get-attrib-projection attributes pattern)]
+      (aproject (d/q {:find vars :where patterns} db))))
 
   (count-pattern [this pattern]
     (if-let [[fvar & rvars] (seq (filter dvar? pattern))]
@@ -161,6 +197,7 @@
               :where [[e '?a v] '[?a :db/ident]]} db))))
   
   (query [this output-pattern patterns]
+    ;; TODO: re-project output for aliases. Low priority: queries are rare.
     (let [vars (filter symbol? output-pattern)
           ;; query may have constants, which are not supported by Datomic
           ;; so these must be projected into the result
@@ -168,7 +205,9 @@
                            identity
                            (partial store-util/project
                                     this
-                                    (vec output-pattern)))]
+                                    output-pattern))
+          symbol-expansion (partial expand-symbol (set vars))
+          patterns (mapcat symbol-expansion patterns)]
       (project-output
         (d/q {:find vars :where patterns} db))))
 
@@ -178,8 +217,9 @@
     (let [tx-fn (if tx-id
                   (partial d/with (or db (d/db connection)))
                   (comp deref (partial d/transact connection)))
-          datomic-assertions (map (partial assertion-from-triple attributes) data)
-          _ (println "ASSERTIONS: " datomic-assertions)
+          build-assertion (partial assertion-from-triple
+                                   (:overloads attributes))
+          datomic-assertions (map build-assertion data)
           {db-after :db-after :as result} (tx-fn datomic-assertions)]
       ;; return the new state. Note the TX ID and log do not change,
       ;; as these have the replay point, if in a transaction.
@@ -231,30 +271,37 @@
       "js" :json
       "edn" :edn
       "type" :pairs
-      "pair" :pairs} (ext (.getName file)))))
+      "pair" :pairs} (str/lower-case (ext (.getName file))))))
 
-(s/defn user-init
-  "Initializes the database with user data"
-  [connection user-data-file :- s/Str]
+(s/defn user-init-data
+  "Generates initialization transaction data from user data"
+  [user-data-file :- s/Str]
   (when user-data-file
     (let [file (File. user-data-file)]
       (when (.exists file)
-        (let [data (try
-                     (case (file-type file)
-                       :json (sch/auto-schema (j/parse-stream (io/reader file)))
+        (try
+          (case (file-type file)
+            :json (sch/auto-schema (j/parse-stream (io/reader file)))
 
-                       :pairs (sch/pair-file-to-attributes (slurp file))
+            :pairs (sch/pair-file-to-attributes (slurp file))
 
-                       :edn (edn/read-string (slurp file))
+            :edn (edn/read-string (slurp file))
 
-                       (throw (ex-info "Unable to determine initialization file type"
-                                       {:file user-data-file})))
-                     (catch IOException e
-                       (throw (ex-info "Unable to read initialization file"
-                                       {:file user-data-file :ex e}))))]
-          (d/transact connection data))))))
+            (throw (ex-info "Unable to determine initialization file type"
+                            {:file user-data-file})))
+          (catch IOException e
+            (throw (ex-info "Unable to read initialization file"
+                            {:file user-data-file :ex e}))))))))
 
-(s/defn read-attribute-types
+(s/defn read-attribute-info
+  :- {(s/required-key :overloads) {s/Keyword {s/Keyword s/Keyword}}
+      (s/required-key :originals) {s/Keyword s/Keyword}
+      (s/required-key :types) {s/Keyword s/Keyword}}
+  "Reads attribute info and uses this to create 3 maps.
+  1. Maps overloaded attributes to a map of type->name,
+     where the name is the attribute to use for that type.
+  2. Maps aliases for the overloaded attribute back to the original.
+  3. Maps attribute names to the type of data they hold."
   [db]
   (let [attr-tuples (d/q '[:find ?onm ?tn ?anm
                            :where
@@ -264,24 +311,37 @@
                            [?t :db/ident ?tn]
                            [?oid :db/ident ?onm]]
                          db)
-        groupings (group-by first attr-tuples)]
-    (->> groupings
-         (map (fn [[o s]]
-                [o (into {} (map (comp vec rest) s))]))
-         (into {}))))
+        overloads (->> (group-by first attr-tuples)
+                       (map (fn [[o s]]
+                              [o (into {} (map (comp vec rest) s))]))
+                       (into {}))
+        originals (into {} (map (fn [[o _ a]] [a o]) attr-tuples))
+        attr-types (into {} (d/q '[:find ?anm ?tn
+                                   :where
+                                   [?a :db/ident ?anm]
+                                   [?a :db/valueType ?t]
+                                   [?t :db/ident ?tn]]
+                                 db))]
+    {:overloads overloads
+     :originals originals
+     :types attr-types}))
+
 
 (s/defn create-store :- Storage
   "Factory function to create a store"
-  [{uri :uri user-data :init mp :map :as config}]
+  [{uri :uri user-data :init data-file :json mp :map :as config}]
   (let [uri (build-uri uri mp)
         connection (if (d/create-database uri)
                      (let [conn (d/connect uri)]
                        (init conn)
                        conn)
                      (d/connect uri))
-        _ (user-init connection user-data)
+        init-data (user-init-data user-data)
+        file-schema (user-init-data data-file)
+        _ (when-let [initial-tx (seq (concat init-data file-schema))]
+            (d/transact connection initial-tx))
         db (d/db connection)
-        attr (read-attribute-types db)]
+        attr (read-attribute-info db)]
     (->DatomicStore connection db attr nil nil)))
 
-(store/register-storage! :datomic create-store)
+(store/register-storage! :datomic create-store #(d/shutdown true))

@@ -26,6 +26,11 @@
     :db/cardinality :db.cardinality/many
     :db.install/_attribute :db.part/db}
    {:db/id (Peer/tempid :db.part/db)
+    :db/ident :naga/json.entity
+    :db/valueType :db.type/boolean
+    :db/cardinality :db.cardinality/one
+    :db.install/_attribute :db.part/db}
+   {:db/id (Peer/tempid :db.part/db)
     :db/ident :map}
    {:db/id (Peer/tempid :db.part/db)
     :db/ident :array}])

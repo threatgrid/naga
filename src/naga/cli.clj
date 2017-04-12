@@ -62,12 +62,12 @@
                            (let [s (.getScheme u)
                                  fs (and s (re-find #"[^:]*" s))]
                              (stores fs))))
-        store-type (or type (store-from-uri uri))
-        init (or init json)]  ;; if there is no init file, then autodetect from the json
+        store-type (or type (store-from-uri uri))]
     (when (and uri (nil? store-type)) (exit 1 "Unable to determine storage type for: " uri))
     {:type (if store-type (keyword store-type) :memory)
      :uri uri
-     :init init}))
+     :init init
+     :json json}))
 
 (defn run-all
   "Runs a program, and returns the data processed, the results, and the stats.
@@ -161,4 +161,5 @@
           (logic-program in-stream storage-config))))
     (catch ExceptionInfo e
       (binding [*out* *err*]
-        (println (.getMessage e))))))
+        (println (.getMessage e))))
+    (finally (store/shutdown))))

@@ -107,7 +107,7 @@
   (let [[id triples] (map->triples j)]
     (if (:db/ident j)
       triples
-      (cons [id :db/ident (name-for id)] triples))))
+      (concat [[id :db/ident (name-for id)] [id :naga/json.entity true]] triples))))
 
 
 (s/defn json->triples :- [Triple]
@@ -168,7 +168,9 @@
             [_ first-elt] (recurse-node store first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
-        (cons first-elt (build-list store (property-values store remaining)))))))
+        (if remaining
+          (cons first-elt (build-list store (property-values store remaining)))
+          (list first-elt))))))
 
 
 (s/defn recurse-node :- s/Any
@@ -190,7 +192,8 @@
         (map (partial recurse-node store))
         (into {}))
    :db/id
-   :db/ident))
+   :db/ident
+   :naga/json.entity))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
@@ -213,7 +216,7 @@
 (s/defn store->json :- [{s/Keyword s/Any}]
   "Pulls all top level JSON out of a store"
   [store :- Storage]
-  (->> (store/resolve-pattern store '[?e :db/ident ?id])
+  (->> (store/query store '[?e] '[[?e :naga/json.entity true] [?e :db/ident ?id]])
        (map first)
        (map (partial id->json store))))
 

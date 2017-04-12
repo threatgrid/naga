@@ -85,15 +85,15 @@
   "Converts each row from a result, into just the requested columns, as per the patterns arg.
    Any specified value in the patterns will be copied into that position in the projection.
    Unbound patterns will generate new nodes for each row.
-  e.g. For patterns [[?h1 :friend ?h2]]
+  e.g. For pattern [?h1 :friend ?h2]
        data: [[h1=frodo h3=bilbo h2=gandalf]
               [h1=merry h3=pippin h2=frodo]]
   leads to: [[h1=frodo :friend h2=gandalf]
              [h1=merry :friend h2=frodo]]"
   [storage
-   patterns :- [[s/Any]]
+   pattern :- [s/Any]
    data :- Results]
-  (let [full-pattern (vec (apply concat patterns))
+  (let [full-pattern (vec pattern)
         columns (:cols (meta data))
         pattern->data (offset-mappings storage full-pattern columns data)
         nodes (new-nodes pattern->data)]
