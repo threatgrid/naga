@@ -23,6 +23,13 @@ While Naga is still in development, the easiest way to run it is with the
 This runs the program found in the `family.lg` file. It loads the data specified in the file,
 executes the rules, and finally prints the final results database, without the input data.
 
+### Options
+
+- `--init` Initialization data for the configured storage.
+- `--json` Input path/url for JSON to be loaded and processed.
+- `--out` Output file when processing JSON data (ignored when JSON not used).
+- `--uri` URI describing a database to connect to. (default: `mem`. Datomic supported).
+
 ## Programs
 
 The language being implemented is called "Pabu" and it strongly resembles Prolog. It is
