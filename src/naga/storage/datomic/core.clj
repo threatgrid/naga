@@ -339,7 +339,7 @@
         init-data (user-init-data user-data)
         file-schema (user-init-data data-file)
         _ (when-let [initial-tx (seq (concat init-data file-schema))]
-            (d/transact connection initial-tx))
+             @(d/transact connection initial-tx))
         db (d/db connection)
         attr (read-attribute-info db)]
     (->DatomicStore connection db attr nil nil)))
