@@ -25,14 +25,14 @@
                                  "    [\"nested\"]"
                                  "]}]"))]
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]] m1))
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
     (is (= [[:test/n1 :db/ident :test/n1] 
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
@@ -42,13 +42,13 @@
             [:test/n2 :naga/contains 42]
             [:test/n2 :naga/contains 54]] m3))
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n2 :db/ident :test/n2]
-            [:test/n2 :naga/json.entity true]
+            [:test/n2 :naga/entity true]
             [:test/n2 :prop "val2"]] m4))
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
@@ -77,14 +77,14 @@
                           [{:prop "val"
                             :arr [{:a 1} {:a 2} ["nested"]]}])]
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]] m1))
     (is (= [[:test/n1 :db/ident :test/n1]
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 2]] m2))
     (is (= [[:test/n1 :db/ident :test/n1] 
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :p2 22]
             [:test/n1 :p3 :test/n2]
@@ -94,13 +94,13 @@
             [:test/n2 :naga/contains 42]
             [:test/n2 :naga/contains 54]] m3))
     (is (= [[:test/n1 :db/ident :test/n1] 
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n2 :db/ident :test/n2] 
-            [:test/n2 :naga/json.entity true]
+            [:test/n2 :naga/entity true]
             [:test/n2 :prop "val2"]] m4))
     (is (= [[:test/n1 :db/ident :test/n1] 
-            [:test/n1 :naga/json.entity true]
+            [:test/n1 :naga/entity true]
             [:test/n1 :prop "val"]
             [:test/n1 :arr :test/n2]
             [:test/n2 :naga/first :test/n3]
