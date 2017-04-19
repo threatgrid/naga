@@ -81,6 +81,15 @@
   (let [[entity _ val] (some (fn [[_ a _ :as axiom]] (when (= a :db/ident) axiom)) group)]
     (seq (store/resolve-pattern storage ['?e :db/ident val]))))
 
+(s/defn adorn-entities :- [Axiom]
+  "Marks new entities as Naga entities"
+  [triples :- [Axiom]]
+  (reduce (fn [acc [e a v :as triple]]
+            (let [r (conj acc triple)]
+              (if (= :db/ident a) (conj r [e :naga/entity true]) r)))
+          []
+          triples))
+
 (s/defn project :- Results
   "Converts each row from a result, into just the requested columns, as per the patterns arg.
    Any specified value in the patterns will be copied into that position in the projection.
@@ -112,4 +121,5 @@
     (->> data
          (map #(partition 3 (project-row storage full-pattern nodes pattern->data %)))
          (remove (partial group-exists? storage))
-         (apply concat))))
+         (apply concat)
+         adorn-entities)))

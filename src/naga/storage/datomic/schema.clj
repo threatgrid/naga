@@ -10,7 +10,9 @@
 (defn- convert-typename
   "Ensures that user-friendly typenames are "
   [t]
-  ({"map" ["ref" :map]
+  ({"map" ["ref" :object]
+    "object" ["ref" :object]
+    "entity" ["ref" :object]
     "array" ["ref" :array]} t [t nil]))
 
 (defn- simple-def

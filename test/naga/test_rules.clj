@@ -92,8 +92,8 @@
         [store results] (e/run {:type :memory} program)
         data (store/resolve-pattern store '[?e ?a ?v])
         data' (remove #(= :data (first %)) data)]
-    (is (= 3 (count data)))
-    (is (= 2 (count data')))
+    (is (= 4 (count data)))
+    (is (= 3 (count data')))
     (is (not= :data (ffirst data')))
     (is (apply = (map first data')))))
 
@@ -107,7 +107,7 @@
         data (remove #(= [:data :foo :bar] %) data')
         node* (map first data)
         node (first node*)]
-    (is (= 3 (count data)))
+    (is (= 4 (count data)))
     (is (apply = node*))
     (is (some #(= [node :first :a] %) data))
     (is (some #(= [node :second :bar] %) data))
@@ -120,7 +120,7 @@
         data' (store/resolve-pattern store '[?e ?a ?v])
         data (remove #(= [:data :foo :bar] %) data')
         nodes (set (map first data))]
-    (is (= 6 (count data)))
+    (is (= 8 (count data)))
     (is (= 2 (count nodes)))
     (is (some (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))
     (is (some (fn [[e a v]] (and (nodes e) (= [:first :b] [a v]))) data))
@@ -139,7 +139,7 @@
         data' (store/resolve-pattern store '[?e ?a ?v])
         data (remove #(#{[:data :foo :bar] [:other :foo :baz]} %) data')
         nodes (set (map first data))]
-    (is (= 6 (count data)))
+    (is (= 8 (count data)))
     (is (= 2 (count nodes)))
     (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
@@ -157,7 +157,7 @@
         data' (store/resolve-pattern store '[?e ?a ?v])
         data (remove #(= [:data :foo :bar] %) data')
         node (set (map first data))]
-    (is (= 5 (count data)))
+    (is (= 7 (count data)))
     (is (= 2 (count node)))))
 
 (defn short-rule
