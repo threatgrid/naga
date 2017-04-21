@@ -6,7 +6,7 @@ Naga allows users to load data, and define rules to entailed new data. Once rule
 executed, the database will be populated with new inferences which can be queried.
 
 Naga can use its internal database, or wrap an external graph database. A command line
-utility to demonstrate Naga will load rules, into memory, run them, and print all the
+utility to demonstrate Naga will load rules into memory, run them, and print all the
 inferred results.
 
 ## Usage
@@ -56,8 +56,8 @@ Rules are declared in 2 parts.
 *head* :- *body* .
 
 
-The *body* of the rule, defines the data that causes the rule
-to be executed. This is a comma separated series of predicates, each typically containing
+The *body* of the rule defines the data that causes the rule
+to be executed. This is a comma-separated series of predicates, each typically containing
 one or more variables. The predicate itself can also be variable
 (this is very unusual in logic systems).
 
@@ -69,10 +69,10 @@ that the rule will create. It is comprised of a single predicate.
 Here is a rule that will infer an `uncle` relationship from existing data:
 
 ```
-  uncle(Nibling,Uncle) :- parent(Nibling,Parent), brother(Parent,Uncle).
+  uncle(Sibling,Uncle) :- parent(Sibling,Parent), brother(Parent,Uncle).
 ```
 
-In the above statement, *Nibling*, *Parent*, and *Uncle* are all variables. Once variables
+In the above statement, *Sibling*, *Parent*, and *Uncle* are all variables. Once variables
 have been found to match the predicates after the **:-** symbol, then they can be substituted
 into the `uncle` predicate in the head of the rule.
 
