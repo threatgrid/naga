@@ -8,7 +8,7 @@
               [naga.store :as store]
               [naga.util :as u]
               [schema.core :as s])
-    (:import [naga.schema.structs Rule]
+    (:import [naga.schema.structs Rule DynamicRule]
              [naga.store Storage]
              [naga.queue PQueue]))
 
@@ -58,7 +58,7 @@
   "Adds all downstream rules to the queue.
    The queue will adjust order according to salience, if necessary.
    Also marks relevant patterns in the downstream rule bodies as dirty."
-  [rules :- {s/Str Rule}
+  [rules :- {s/Str DynamicRule}
    remaining-queue :- PQueue
    downstream :- [RulePatternPair]]
 
@@ -74,9 +74,10 @@
           downstream)) ;; contains rule-name/pattern pairs for update
 
 
-(s/defn execute
+(s/defn execute :- [(s/one Storage "Final value of storage")
+                    (s/one {s/Str s/Num} "Map of rule name to execution count")]
   "Executes a program. Data is retrieved from and inserted into db-store."
-  [rules :- {s/Str Rule}
+  [rules :- {s/Str DynamicRule}
    db-store :- Storage]
   (let [rule-queue (reduce q/add
                            (q/new-queue :salience :name)
@@ -135,6 +136,20 @@
             ;; no dirty patterns, so rule did not need to be run
             (recur remaining-queue storage)))))))
 
+(s/defn initialize-rules :- {s/Str DynamicRule}
+  "Takes rules with calculated dependencies, and initializes them"
+  [rules :- {s/Str Rule}]
+  (letfn [(init-rule [{:keys [head body name salience downstream]}]
+            (st/new-rule head body name downstream salience
+                         (u/mapmap (fn [_]
+                                     (atom {:last-count 0
+                                            :dirty true}))
+                                   (remove list? body))
+                         (atom 0)))]
+    (into {} (map (fn [[rule-name rule]]
+                    [rule-name (init-rule rule)])
+                  rules))))
+
 (s/defn run :- [(s/one Storage "Resulting data store")
                 (s/one {s/Str s/Num} "Execution stats")]
   "Runs a program against a given configuration"
@@ -142,6 +157,8 @@
    {:keys [rules axioms]} :- Program]
   (let [storage (store/get-storage-handle config)
         storage' (store/start-tx storage)
-        [output-storage stats] (execute rules (store/assert-data storage' axioms))
+        rules' (initialize-rules rules)
+        initialized-storage (store/assert-data storage' axioms)
+        [output-storage stats] (execute rules' initialized-storage)
         result-storage (store/commit-tx output-storage)]
     [result-storage stats]))

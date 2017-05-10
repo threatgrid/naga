@@ -49,12 +49,12 @@
   (let [ptn '[?a :ancestor ?b]
         r1 (new-rule '[[?a :parent ?b]] [ptn] "stub1" [])
         r2 (new-rule '[[?a :parent ?b]] [ptn] "stub2" [["stub2" ptn]])
-        p1 {:rules {"stub1" r1} :axioms []}
-        p2 {:rules {"stub2" r2} :axioms []}]
-    (e/execute (:rules p1) stest/empty-store)
-    (is (= 1 @(:execution-count r1)))
-    (e/execute (:rules p2) stest/empty-store)
-    (is (= 4 @(:execution-count r2)))))
+        p1 {:rules (e/initialize-rules {"stub1" r1}) :axioms []}
+        p2 {:rules (e/initialize-rules {"stub2" r2}) :axioms []}]
+    (let [[_ name->count] (e/execute (:rules p1) stest/empty-store)]
+      (is (= 1 (name->count "stub1"))))
+    (let [[_ name->count] (e/execute (:rules p2) stest/empty-store)]
+      (is (= 4 (name->count "stub2"))))))
 
 (deftest run-family
   (store/register-storage! :memory mem/create-store)

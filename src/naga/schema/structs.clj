@@ -68,8 +68,15 @@
     [head :- Head
      body :- Body
      name :- s/Str
-     salience :- s/Num
      downstream :- [RulePatternPair]
+     salience :- s/Num])
+
+(s/defrecord DynamicRule
+    [head :- Head
+     body :- Body
+     name :- s/Str
+     downstream :- [RulePatternPair]
+     salience :- s/Num
      status :- {EPVPattern (s/atom ConstraintData)}
      execution-count :- (s/atom s/Num)])
 
@@ -88,12 +95,15 @@
     name :- s/Str
     downstream :- [RulePatternPair]
     salience :- s/Num]
-   (->Rule head body name salience downstream
-           (u/mapmap (fn [_]
-                       (atom {:last-count 0
-                              :dirty true}))
-                     (remove list? body))
-           (atom 0))))
+   (->Rule head body name downstream salience))
+  ([head :- Head
+    body :- Body
+    name :- s/Str
+    downstream :- [RulePatternPair]
+    salience :- s/Num
+    status :- {EPVPattern (s/atom ConstraintData)}
+    execution-count :- (s/atom s/Num)]
+   (->DynamicRule head body name downstream salience status execution-count)))
 
 (def EntityPropAxiomElt
   (s/cond-pre s/Keyword Long))
@@ -115,4 +125,8 @@
 
 (def Program
   {(s/required-key :rules) {s/Str Rule}
+   (s/required-key :axioms) [Axiom]})
+
+(def RunnableProgram
+  {(s/required-key :rules) {s/Str DynamicRule}
    (s/required-key :axioms) [Axiom]})
