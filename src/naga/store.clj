@@ -40,7 +40,7 @@
   "Creates a store of the configured type. Throws an exception for unknown types."
   [{type :type store :store :as config}]
   (or store
-      (if-let [factory (@registered-stores type)]
+      (if-let [factory (@registered-stores (keyword type))]
         (factory config)
         (throw (ex-info "Unknown storage configuration" config)))))
 
