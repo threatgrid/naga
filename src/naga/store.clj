@@ -14,7 +14,13 @@
   (count-pattern [store pattern] "Counts the size of a pattern resolition against storage")
   (query [store output-pattern patterns] "Resolves a set of patterns (if not already resolved), joins the results, and projects the output. The output can contain constant values as well as selected variables.")
   (assert-data [store data] "Inserts new axioms")
+  (assert-schema-opts [store schema opts] "Inserts a new schema, if supported")
   (query-insert [store assertion-patterns patterns] "Resolves a set of patterns, joins them, and inserts the set of resolutions"))
+
+(defn assert-schema
+  "Convenience function to avoid passing empty options"
+  [store schema & {:as opts}]
+  (assert-schema store schema opts))
 
 (defn retrieve-contents
   "Convenience function to retrieve the contents of the entire store"
@@ -40,7 +46,7 @@
   "Creates a store of the configured type. Throws an exception for unknown types."
   [{type :type store :store :as config}]
   (or store
-      (if-let [factory (@registered-stores type)]
+      (if-let [factory (@registered-stores (keyword type))]
         (factory config)
         (throw (ex-info "Unknown storage configuration" config)))))
 

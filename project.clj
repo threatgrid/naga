@@ -9,6 +9,8 @@
                  [org.clojure/core.cache "0.6.5"]
                  [the/parsatron "0.0.7"]
                  [cheshire "5.6.3"]
-                 [com.datomic/datomic-free "0.9.5561"]]
-  :profiles {:dev {:plugins [[lein-kibit "0.1.3"]]}}
+                 ; [com.datomic/datomic-pro "0.9.5561"] ; uncomment for Datomic Pro
+                 [com.datomic/datomic-free "0.9.5561"]
+                 [org.postgresql/postgresql "9.3-1102-jdbc41"]]
+  :profiles {:dev {:plugins [[lein-kibit "0.1.5"]]}}
   :main naga.cli)

@@ -4,7 +4,6 @@ install:
   - lein deps
 
 script:
-  - lein kibit
   - lein test
 
 notifications:

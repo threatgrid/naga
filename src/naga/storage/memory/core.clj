@@ -312,6 +312,8 @@
   (assert-data [_ data]
     (->MemoryStore (add-to-graph graph data)))
 
+  (assert-schema-opts [this _ _] this)
+
   (query-insert [this assertion-patterns patterns]
     (letfn [(ins-project [data]
               (let [cols (:cols (meta data))]
