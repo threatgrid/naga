@@ -133,6 +133,14 @@
          results)))
     identity))
 
+(defn transaction-fn
+  "Create a transaction function for the given storage configuration"
+  [{:keys [tx-id db connection]}]
+  (comp :db-after
+        (if tx-id
+          (partial d/with (or db (d/db connection)))
+          (comp deref (partial d/transact connection)))))
+
 ;; TODO: alias projection
 ;; if any attribute in a query patterns is a symbol, AND that symbol is in the output
 ;; then update the projection to rewrite that symbol as per get-attrib-projection
@@ -220,19 +228,29 @@
       (project-output
        (q {:find vars :where patterns} db))))
 
-  (assert-data [_ data]
+  (assert-data [this data]
     ;; if in a transaction, speculatively add data to the current database
     ;; otherwise insert normally
-    (let [tx-fn (if tx-id
-                  (partial d/with (or db (d/db connection)))
-                  (comp deref (partial d/transact connection)))
-          build-assertion (partial assertion-from-triple
+    (let [build-assertion (partial assertion-from-triple
                                    (:overloads attributes))
           datomic-assertions (map build-assertion data)
-          {db-after :db-after :as result} (tx-fn datomic-assertions)]
+          db-after ((transaction-fn this) datomic-assertions)]
       ;; return the new state. Note the TX ID and log do not change,
       ;; as these have the replay point, if in a transaction.
       (->DatomicStore connection db-after attributes tx-id log)))
+
+  (assert-schema-opts [this schema-data {stype :type :as opts}]
+    (try
+      (let [schema (case stype
+                     :json (sch/auto-schema schema-data)
+                     :pairs (sch/pair-file-to-attributes schema-data)
+                     :edn schema-data
+                     (throw (ex-info "Unknown schema type: " opts)))
+            db-after ((transaction-fn this) schema)]
+        (->DatomicStore connection db-after attributes tx-id log))
+      (catch Exception e
+        (.printStackTrace e)
+        (throw e))))
 
   (query-insert [this assertion-patterns patterns]
     ;; compose from query/assert-data
