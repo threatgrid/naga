@@ -2,3 +2,6 @@ id string
 sibling string
 parent string
 type string
+brother string
+uncle string
+rdf/type keyword
