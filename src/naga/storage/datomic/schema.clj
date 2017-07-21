@@ -59,7 +59,7 @@
   "Generates data for new attribute definitions, based on a file of attribute/type pairs."
   [file-text]
   (->> (s/split file-text #"\n")
-       (map #(s/split % #"\W+"))
+       (map #(s/split % #"\s+"))
        attribute-data))
 
 (defprotocol Dataschema

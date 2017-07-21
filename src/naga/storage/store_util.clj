@@ -78,7 +78,7 @@
    and if so checks if it already exists."
   [storage
    group :- [Axiom]]
-  (let [[entity _ val] (some (fn [[_ a _ :as axiom]] (when (= a :db/ident) axiom)) group)]
+  (if-let [[entity _ val :as g] (some (fn [[_ a _ :as axiom]] (when (= a :db/ident) axiom)) group)]
     (seq (store/resolve-pattern storage ['?e :db/ident val]))))
 
 (s/defn adorn-entities :- [Axiom]

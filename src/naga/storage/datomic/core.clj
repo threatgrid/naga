@@ -205,13 +205,14 @@
       (aproject (q {:find vars :where patterns} db))))
 
   (count-pattern [this pattern]
-    (if-let [[fvar & rvars] (seq (filter dvar? pattern))]
-      (q {:find [(list 'count fvar) '.]
-          :with rvars
-          :where [pattern]} db)
-      (let [[e a v] pattern] ;; existence test: 0 or 1
-        (q {:find '[(count ?a) .]
-            :where [[e '?a v] '[?a :db/ident]]} db))))
+    (let [[fvar & rvars] (seq (filter dvar? pattern))]
+      (if (seq (remove dvar? pattern))
+        (q {:find [(list 'count fvar) '.]
+            :with rvars
+            :where [pattern]} db)
+        (let [[e a v] pattern] ;; existence test: 0 or 1
+          (q {:find '[(count ?a) .]
+              :where [[e '?a v] '[?a :db/ident]]} db)))))
   
   (query [this output-pattern patterns]
     ;; TODO: re-project output for aliases. Low priority: queries are rare.
@@ -240,17 +241,13 @@
       (->DatomicStore connection db-after attributes tx-id log)))
 
   (assert-schema-opts [this schema-data {stype :type :as opts}]
-    (try
-      (let [schema (case stype
-                     :json (sch/auto-schema schema-data)
-                     :pairs (sch/pair-file-to-attributes schema-data)
-                     :edn schema-data
-                     (throw (ex-info "Unknown schema type: " opts)))
-            db-after ((transaction-fn this) schema)]
-        (->DatomicStore connection db-after attributes tx-id log))
-      (catch Exception e
-        (.printStackTrace e)
-        (throw e))))
+    (let [schema (case stype
+                   :json (sch/auto-schema schema-data)
+                   :pairs (sch/pair-file-to-attributes schema-data)
+                   :edn schema-data
+                   (throw (ex-info "Unknown schema type: " opts)))
+          db-after ((transaction-fn this) schema)]
+      (->DatomicStore connection db-after attributes tx-id log)))
 
   (query-insert [this assertion-patterns patterns]
     ;; compose from query/assert-data
