@@ -133,6 +133,40 @@
          results)))
     identity))
 
+(s/defn read-attribute-info
+  :- {(s/required-key :overloads) {s/Keyword {s/Keyword s/Keyword}}
+      (s/required-key :originals) {s/Keyword s/Keyword}
+      (s/required-key :types) {s/Keyword s/Keyword}}
+  "Reads attribute info and uses this to create 3 maps.
+  1. Maps overloaded attributes to a map of type->name,
+     where the name is the attribute to use for that type.
+  2. Maps aliases for the overloaded attribute back to the original.
+  3. Maps attribute names to the type of data they hold."
+  [db]
+  (let [attr-tuples (q '[:find ?onm ?tn ?anm
+                         :where
+                         [?a :naga/original ?oid]
+                         [?a :db/ident ?anm]
+                         [?a :db/valueType ?t]
+                         [?t :db/ident ?tn]
+                         [?oid :db/ident ?onm]]
+                       db)
+        overloads (->> (group-by first attr-tuples)
+                       (map (fn [[o s]]
+                              [o (into {} (map (comp vec rest) s))]))
+                       (into {}))
+        originals (into {} (map (fn [[o _ a]] [a o]) attr-tuples))
+        attr-types (into {} (q '[:find ?anm ?tn
+                                 :where
+                                 [?a :db/ident ?anm]
+                                 [?a :db/valueType ?t]
+                                 [?t :db/ident ?tn]]
+                               db))]
+    {:overloads overloads
+     :originals originals
+     :types attr-types}))
+
+
 (defn transaction-fn
   "Create a transaction function for the given storage configuration"
   [{:keys [tx-id db connection]}]
@@ -246,8 +280,9 @@
                    :pairs (sch/pair-file-to-attributes schema-data)
                    :edn schema-data
                    (throw (ex-info "Unknown schema type: " opts)))
-          db-after ((transaction-fn this) schema)]
-      (->DatomicStore connection db-after attributes tx-id log)))
+          db-after ((transaction-fn this) schema)
+          attr (read-attribute-info db-after)]
+      (->DatomicStore connection db-after attr tx-id log)))
 
   (query-insert [this assertion-patterns patterns]
     ;; compose from query/assert-data
@@ -316,40 +351,6 @@
           (catch IOException e
             (throw (ex-info "Unable to read initialization file"
                             {:file user-data-file :ex e}))))))))
-
-(s/defn read-attribute-info
-  :- {(s/required-key :overloads) {s/Keyword {s/Keyword s/Keyword}}
-      (s/required-key :originals) {s/Keyword s/Keyword}
-      (s/required-key :types) {s/Keyword s/Keyword}}
-  "Reads attribute info and uses this to create 3 maps.
-  1. Maps overloaded attributes to a map of type->name,
-     where the name is the attribute to use for that type.
-  2. Maps aliases for the overloaded attribute back to the original.
-  3. Maps attribute names to the type of data they hold."
-  [db]
-  (let [attr-tuples (q '[:find ?onm ?tn ?anm
-                         :where
-                         [?a :naga/original ?oid]
-                         [?a :db/ident ?anm]
-                         [?a :db/valueType ?t]
-                         [?t :db/ident ?tn]
-                         [?oid :db/ident ?onm]]
-                       db)
-        overloads (->> (group-by first attr-tuples)
-                       (map (fn [[o s]]
-                              [o (into {} (map (comp vec rest) s))]))
-                       (into {}))
-        originals (into {} (map (fn [[o _ a]] [a o]) attr-tuples))
-        attr-types (into {} (q '[:find ?anm ?tn
-                                 :where
-                                 [?a :db/ident ?anm]
-                                 [?a :db/valueType ?t]
-                                 [?t :db/ident ?tn]]
-                               db))]
-    {:overloads overloads
-     :originals originals
-     :types attr-types}))
-
 
 (s/defn create-store :- Storage
   "Factory function to create a store"
