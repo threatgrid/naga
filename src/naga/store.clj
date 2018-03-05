@@ -5,6 +5,7 @@
 (defprotocol Storage
   (start-tx [store] "Starts a transaction, if supported")
   (commit-tx [store] "Commits a transaction, if supported")
+  (deltas [store] "Returns the latest updated subjects in the represented store")
   (new-node [store] "Allocates a node for the store")
   (node-id [store n] "Returns a id for a node. Numbers are good")
   (node-type? [store p n] "Returns true if the value refered to by a property can be a graph node")

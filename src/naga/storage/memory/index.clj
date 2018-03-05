@@ -44,6 +44,7 @@
 (defprotocol Graph
   (graph-add [this subj pred obj] "Adds triples to the graph")
   (graph-delete [this subj pred obj] "Removes triples from the graph")
+  (graph-diff [this other] "Returns all subjects that have changed in this graph, compared to other")
   (resolve-triple [this subj pred obj] "Resolves patterns from the graph, and returns unbound columns only"))
 
 (defrecord GraphIndexed [spo pos osp]
@@ -59,6 +60,10 @@
     (if-let [idx (index-delete spo subj pred obj)]
       (assoc this :spo idx :pos (index-delete pos pred obj subj) :osp (index-delete osp obj subj pred))
       this))
+  (graph-diff [this other]
+    (let [s-po (remove (fn [[s po]] (= po (get (:spo other) s)))
+                       spo)]
+      (map first s-po)))
   (resolve-triple [this subj pred obj]
     (get-from-index this subj pred obj)))
 
