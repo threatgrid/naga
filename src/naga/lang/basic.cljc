@@ -1,10 +1,35 @@
-(ns ^{:doc "Parser for basic Pabu syntactic elements."
-      :author "Paula Gearon"}
-  naga.lang.basic
+(ns naga.lang.basic
   (:refer-clojure :exclude [char])
   (:require [clojure.string :as str]
-            [the.parsatron :refer :all]
+            #?(:clj [the.parsatron :refer [char token choice attempt either
+                                           string many many1 >> let->>
+                                           digit letter always defparser
+                                           between fail]]
+               :cljs [the.parsatron :refer [char token choice attempt either
+                                            string many many1
+                                            digit letter always
+                                            between fail]
+                                    :refer-macros [>> let->> defparser]])
             [naga.schema.structs :as st]))
+
+#?(:cljs (defn is-letter? [c] (.match c #"[a-zA-Z]")))
+
+#?(:clj (defn to-lower-case [^Character c] (Character/toLowerCase c))
+   :cljs (defn to-lower-case [c] (.toLowerCase c)))
+
+#?(:clj (defn is-upper-case? [^Character c] (Character/isUpperCase c))
+   :cljs (defn is-upper-case? [c] (and (is-letter? c) (= c (.toUpperCase c)))))
+
+#?(:clj (defn is-digit? [^Character c] (Character/isDigit c))
+   :cljs (defn is-digit? [c] (.match c #"[0-9]")))
+
+(defn atoi [s]
+  #?(:clj  (Long/parseLong s)
+     :cljs (js/parseInt s)))
+
+(defn atof [s]
+  #?(:clj  (Double/parseDouble s)
+     :cljs (js/parseFloat s)))
 
 (defn choice*
   "choice with backtracking."
@@ -42,7 +67,7 @@
 
 (def plus (char \+))
 (def minus (char \-))
-(def divide (char \/))
+(def divd (char \/))
 (def tms (char \*))
 
 (def non-dquote (token (complement #{\"})))
@@ -51,7 +76,7 @@
 (defn upper-case-letter?
   "Prolog considers underscores to be equivalent to an uppercase letter"
   [c]
-  (or (Character/isUpperCase ^Character c) (= \_ c)))
+  (or (is-upper-case? c) (= \_ c)))
 
 ;; parser for upper-case letters
 (defn upper-case-letter
@@ -73,12 +98,12 @@
 
 (defparser integer []
   (let->> [i (either digits (signed-digits))]
-    (always (Long/parseLong (str/join i)))))
+    (always (atoi (str/join i)))))
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
            f (>> (char \.) (many1 (digit)))]
-    (always (Double/parseDouble (apply str (str/join i) \. f)))))
+    (always (atof (apply str (str/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
@@ -98,7 +123,7 @@
 (defparser variable []
   (let->> [f (upper-case-letter)
            r (many (choice (letter) (digit) (char \_) (char \-)))]
-    (always (symbol (apply str "?" (Character/toLowerCase f) r)))))
+    (always (symbol (apply str "?" (to-lower-case f) r)))))
 
 (defn build-keyword
   "Creates a keyword from a parsed word token"
@@ -106,7 +131,7 @@
   (let [[kns kname :as w] (str/split wrd #":")
         parts (count w)]
     ;; use cond without a default to return nil
-    (cond (Character/isDigit (first wrd)) nil
+    (cond (is-digit? (first wrd)) nil
           (= 2 parts) (cond (empty? kns) (keyword kname)
                             (seq kname) (keyword kns kname))
           (= 1 parts) (if-not (str/ends-with? wrd ":")

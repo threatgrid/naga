@@ -1,12 +1,12 @@
-(ns ^{:doc "Defines rule structures and constructors to keep them consistent"
-      :author "Paula Gearon"}
-    naga.rules
+(ns naga.rules
+    "Defines rule structures and constructors to keep them consistent"
     (:require [clojure.set :as set]
               [schema.core :as s]
-              [naga.schema.structs :as st :refer [EPVPattern RulePatternPair Body Axiom Program]]
-              [naga.util :as u])
-    (:import [clojure.lang Symbol]
-             [naga.schema.structs Rule]))
+              [naga.util :as u]
+              [naga.schema.structs :as st
+                                   :refer #?(:clj [EPVPattern RulePatternPair Body Axiom Program]
+                                             :cljs [EPVPattern RulePatternPair Body Axiom Program Rule])])
+    #?(:clj (:import [naga.schema.structs Rule])))
 
 (defn- gen-rule-name [] (name (gensym "rule-")))
 
@@ -93,15 +93,10 @@
     (assert (#{\? \%} (first n)) (str "Unknown symbol type in rule: " n)) )
   true)
 
-(defprotocol Matching
-  (compatible [x y] "Returns true if both elements are compatible"))
-
-(extend-protocol Matching
-  Symbol
-  (compatible [x y]
-    (and (not (fresh-var? x)) (not (fresh-var? y)) (check-symbol x)))
-  Object
-  (compatible [x y]
+(defn compatible
+  [x y]
+  (if (symbol? x)
+    (and (not (fresh-var? x)) (not (fresh-var? y)) (check-symbol x))
     (or (= x y) (and (symbol? y) (not (fresh-var? y)) (check-symbol y)))))
 
 (s/defn match? :- s/Bool

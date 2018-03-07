@@ -1,13 +1,11 @@
-(ns ^{:doc "Defines the schemas for rule structures"
-      :author "Paula Gearon"}
-    naga.schema.structs
-    (:require [schema.core :as s]
-              [naga.util :as u])
-    (:import [clojure.lang Symbol]))
+(ns naga.schema.structs
+  (:require #?(:clj [schema.core :as s]
+               :cljs [schema.core :as s :include-macros true])
+              [naga.util :as u]))
 
 ;; single element in a rule
 (def EntityPropertyElt
-  (s/cond-pre s/Keyword s/Symbol Long))
+  (s/cond-pre s/Keyword s/Symbol #?(:clj Long :cljs s/Num)))
 
 ;; simple pattern containing a single element. e.g. [?v]
 (def EntityPattern [(s/one s/Symbol "entity")])
@@ -30,7 +28,7 @@
   [x]
   (and (symbol? x) (boolean (#{\? \%} (first (name x))))))
 
-(s/defn vars :- [Symbol]
+(s/defn vars :- [s/Symbol]
   "Return a seq of all variables in a pattern"
   [pattern :- EPVPattern]
   (filter vartest? pattern))
@@ -106,7 +104,7 @@
    (->DynamicRule head body name downstream salience status execution-count)))
 
 (def EntityPropAxiomElt
-  (s/cond-pre s/Keyword Long))
+  (s/cond-pre s/Keyword #?(:clj Long :cljs s/Num)))
 
 (def EntityPropValAxiomElt
   (s/conditional (complement symbol?) s/Any))

@@ -1,15 +1,15 @@
-(ns ^{:doc "Implements Pabu, which is a Prolog-like language for Naga.
-Parses code and returns Naga rules."
-      :author "Paula Gearon"}
-  naga.lang.pabu
-  (:require [naga.schema.structs :as structs :refer [Axiom Program Triple]]
+(ns naga.lang.pabu
+  "Implements Pabu, which is a Prolog-like language for Naga.  Parses code and returns Naga rules."
+  (:require [naga.schema.structs :as structs :refer
+                                 #?(:clj [Axiom Program Triple]
+                                    :cljs [Axiom Program Triple Rule])]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
             [naga.util :as u]
-            [schema.core :as s])
-  (:import [java.io InputStream]
-           [naga.schema.structs Rule]
-           [clojure.lang Var]))
+            #?(:clj [schema.core :as s]
+               :cljs [schema.core :as s :include-macros true]))
+  #?(:clj (:import [java.io InputStream]
+                   [naga.schema.structs Rule])))
 
 ;; TODO: Multi-arity not yet supported
 (def Args
@@ -28,7 +28,7 @@ Parses code and returns Naga rules."
     0 [[s :rdf/type :owl/thing]]
     1 [[s :rdf/type property]]
     2 [[s property o]]
-    (throw (ex-info "Multi-arity predicates not yet supported"))))
+    (throw (ex-info "Multi-arity predicates not yet supported" {:args args}))))
 
 (s/defn triplet :- Triple
   "Converts raw parsed predicate information into a single triple"
@@ -77,14 +77,16 @@ Parses code and returns Naga rules."
                      :axioms [Axiom]}
   "Reads a string"
   [s :- s/Str]
+  #?(:cljs (.log js/console "Reading a string.") )
   (let [program-ast (parser/parse s)
         axioms (filter (comp (partial = :axiom) :type) program-ast)
         rules (filter (comp (partial = :rule) :type) program-ast)]
     {:rules (map ast->rule rules)
      :axioms (map ast->axiom axioms)}))
 
-(s/defn read-stream :- Program
-  "Reads a input stream"
-  [in :- InputStream]
-  (let [text (slurp in)]
-    (read-str text)))
+#?(:clj
+  (s/defn read-stream :- Program
+    "Reads a input stream"
+    [in :- InputStream]
+    (let [text (slurp in)]
+    (read-str text))))

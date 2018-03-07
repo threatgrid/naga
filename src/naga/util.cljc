@@ -1,8 +1,8 @@
-(ns ^{:doc "The ubiquitous utility namespace that every project seems to have"
-      :author "Paula Gearon"}
-    naga.util
-  (:require [schema.core :as s :refer [=>]])
-  (:import [clojure.lang Var]))
+(ns naga.util
+    "The ubiquitous utility namespace that every project seems to have"
+    (:require [schema.core :as s :refer [=>]]
+               #?(:cljs [cljs.js :as js :refer [eval empty-state js-eval]]))
+    #?(:clj (:import [clojure.lang Var])))
 
 (s/defn mapmap :- {s/Any s/Any}
   "Creates a map from functions applied to a seq.
@@ -17,18 +17,31 @@
     s :- [s/Any]]
     (into {} (map (juxt keyfn valfn) s))))
 
-(s/defn get-fn-reference :- (s/maybe Var)
-  "Looks up a namespace:name function represented in a keyword,
+#?(:clj
+   (s/defn get-fn-reference :- (s/maybe Var)
+     "Looks up a namespace:name function represented in a keyword,
    and if it exists, return it. Otherwise nil"
-  [kw :- (s/cond-pre s/Keyword s/Symbol)]
-  (let [kns (namespace kw)
-        snm (symbol (name kw))]
-    (some-> kns
-      symbol
-      find-ns
-      (ns-resolve snm))))
+     [kw :- (s/cond-pre s/Keyword s/Symbol)]
+     (let [kns (namespace kw)
+           snm (symbol (name kw))]
+       (some-> kns
+               symbol
+               find-ns
+               (ns-resolve snm))))
 
-(s/defn divide :- [[s/Any] [s/Any]]
+   :cljs
+   (s/defn get-fn-reference :- (s/maybe Var)
+     "Looks up a namespace:name function represented in a keyword,
+      and if it exists, return it. Otherwise nil"
+     [kw :- (s/cond-pre s/Keyword s/Symbol)]
+     (let [snm (symbol (namespace kw) (name kw))]
+       (:value
+        (cljs.js/eval (cljs.js/empty-state)
+                      snm
+                      {:eval cljs.js/js-eval :source-map true :context :expr}
+                      identity)))))
+
+(s/defn divide' :- [[s/Any] [s/Any]]
   "Takes a predicate and a sequence and returns 2 sequences.
    The first is where the predicate returns true, and the second
    is where the predicate returns false. Note that a nil value

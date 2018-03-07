@@ -1,8 +1,9 @@
-(ns ^{:doc "Parser for Pabu, which is a Prolog-like syntax for Naga."
-      :author "Paula Gearon"}
-  naga.lang.parser
+(ns naga.lang.parser
+  "Parser for Pabu, which is a Prolog-like syntax for Naga."
   (:refer-clojure :exclude [char])
-  (:require [the.parsatron :refer :all]
+  (:require #?(:clj [the.parsatron :refer [defparser let->> >> always between many attempt char string run]]
+               :cljs [the.parsatron :refer [always between many attempt char string run]
+                                    :refer-macros [defparser let->> >>]])
             [naga.lang.basic :refer
              [whitespace-char opt-whitespace separator open-paren close-paren
               get-vars arg-list elt

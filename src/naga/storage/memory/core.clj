@@ -274,7 +274,7 @@
 
 (defrecord MemoryStore [before-graph graph]
   Storage
-  (start-tx [this] (->MemoryStore this this))
+  (start-tx [this] (->MemoryStore before-graph graph))
 
   (commit-tx [this] this)
 
