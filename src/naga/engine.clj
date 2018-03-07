@@ -151,7 +151,8 @@
                   rules))))
 
 (s/defn run :- [(s/one Storage "Resulting data store")
-                (s/one {s/Str s/Num} "Execution stats")]
+                (s/one {s/Str s/Num} "Execution stats")
+                (s/one (s/maybe {s/Str s/Num}) "Execution stats")]
   "Runs a program against a given configuration"
   [config :- {s/Keyword s/Any}
    {:keys [rules axioms]} :- Program]
@@ -160,5 +161,6 @@
         rules' (initialize-rules rules)
         initialized-storage (store/assert-data storage' axioms)
         [output-storage stats] (execute rules' initialized-storage)
-        result-storage (store/commit-tx output-storage)]
-    [result-storage stats]))
+        result-storage (store/commit-tx output-storage)
+        delta-ids (store/deltas result-storage)]
+    [result-storage stats delta-ids]))

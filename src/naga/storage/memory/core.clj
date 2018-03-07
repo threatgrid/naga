@@ -272,11 +272,16 @@
         (swap! m c/miss graph f)
         f))))
 
-(defrecord MemoryStore [graph]
+(defrecord MemoryStore [before-graph graph]
   Storage
-  (start-tx [this] this)
+  (start-tx [this] (->MemoryStore before-graph graph))
 
   (commit-tx [this] this)
+
+  (deltas [this]
+    (when-let [previous-graph (or (:data (meta this)) before-graph)]
+      (let [subjects (mem/graph-diff graph previous-graph)]
+        (filter (fn [s] (seq (mem/resolve-pattern graph [s :naga/entity '?]))) subjects))))
 
   (new-node [this]
     (->> "node-"
@@ -310,7 +315,7 @@
     (store-util/project this output-pattern (join-patterns graph patterns)))
 
   (assert-data [_ data]
-    (->MemoryStore (add-to-graph graph data)))
+    (->MemoryStore before-graph (add-to-graph graph data)))
 
   (assert-schema-opts [this _ _] this)
 
@@ -321,9 +326,9 @@
       (->> (join-patterns graph patterns)
            ins-project
            (add-to-graph graph)
-           ->MemoryStore))))
+           (->MemoryStore before-graph)))))
 
-(def empty-store (->MemoryStore mem/empty-graph))
+(def empty-store (->MemoryStore nil mem/empty-graph))
 
 (s/defn create-store :- Storage
   "Factory function to create a store"

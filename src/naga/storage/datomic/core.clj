@@ -167,6 +167,23 @@
      :types attr-types}))
 
 
+(defn top-ids
+  "Adds to an accumulator all Database entities that represent a top level entity"
+  [db ids acc]
+  (let [eids (q '[:find ?i
+                  :in $ [?i ...]
+                  :where [?i :naga/entity]] db ids)
+        eids? (into #{} eids) 
+        parented-ids (remove eids? ids)
+        pids (q '[:find ?pid
+                  :in $ [?i ...]
+                  :where [?pid ?a ?i]] db parented-ids)
+        pids' (remove (into #{} parented-ids) pids)] ;; remove potential loops
+    (if (seq pids')
+      (recur db pids' (concat acc eids))
+      acc)))
+
+
 (defn transaction-fn
   "Create a transaction function for the given storage configuration"
   [{:keys [tx-id db connection]}]
@@ -206,8 +223,13 @@
                        db))
           ;; replay those assertions into the database
           {db-after :db-after} @(d/transact connection data)]
-      ;; return the new state of the database
-      (->DatomicStore connection db-after attributes nil nil)))
+      ;; return the new state of the database, add the option of data as metadata
+      (with-meta (->DatomicStore connection db-after attributes nil nil) {:data data})))
+
+  (deltas [this]
+    (when-let [{data :data} (meta this)]
+      (let [ids (map first data)]
+        (top-ids db ids []))))
 
   (new-node [_]
     (d/tempid :naga/data)) ;; this matches the partition in init/pre-init-data

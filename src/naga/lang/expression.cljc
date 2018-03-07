@@ -1,20 +1,19 @@
-(ns ^{:doc "Parser for Pabu expressions. This is basic infix arithmetic."
-      :author "Paula Gearon"}
-  naga.lang.expression
-  (:refer-clojure :exclude [char])
-  (:require [the.parsatron :refer :all]
-            [naga.lang.basic :refer
-             [whitespace-char opt-whitespace separator open-paren close-paren
-              equals not-equals lt gt lte gte
-              plus minus tms divide
-              elt pstring
-              choice* either*]]))
+(ns naga.lang.expression
+  (:require #?(:clj [the.parsatron :refer [defparser let->> >> many attempt always]]
+               :cljs [the.parsatron :refer [many attempt always]
+                                    :refer-macros [defparser let->> >>]])
+              [naga.lang.basic :refer
+               [whitespace-char opt-whitespace separator open-paren close-paren
+                equals not-equals lt gt lte gte
+                plus minus tms divd
+                elt pstring
+                choice* either*]]))
 
 
 (def relation (choice* equals not-equals lt gt lte gte))
 
 (def plus-op (either* plus minus))
-(def mult-op (either* divide tms))
+(def mult-op (either* divd tms))
 
 (def fn-symbol
   {\= =, "!=" not=, \< <, \> >, "<=" <=, ">=" >=,
