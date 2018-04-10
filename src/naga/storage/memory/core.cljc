@@ -3,15 +3,18 @@
     naga.storage.memory.core
     (:require [clojure.set :as set]
               [clojure.string :as str]
-              [clojure.core.cache :as c]
               [schema.core :as s]
               [naga.schema.structs :as st :refer [EPVPattern FilterPattern Pattern Results Value Axiom]]
-              [naga.store :as store]
               [naga.util :as u]
               [naga.storage.store-util :as store-util]
-              [naga.storage.memory.index :as mem])
-    (:import [clojure.lang Symbol IPersistentVector IPersistentList]
-             [naga.store Storage]))
+              [naga.storage.memory.index :as mem]
+              #?(:clj [naga.store :as store]
+                 :cljs [naga.store :as store :refer [Storage]])
+              #?(:clj [clojure.core.cache :as c])
+              #?(:cljs [cljs.core :refer [Symbol PersistentVector List LazySeq]]))
+    #?(:clj
+        (:import [clojure.lang Symbol IPersistentVector IPersistentList]
+                 [naga.store Storage])))
 
 (defprotocol Constraint
   (get-vars [c] "Returns a seq of the vars in a constraint")
@@ -194,6 +197,8 @@
 
 
 ;; protocol dispatch for patterns and filters in queries
+#?(
+:clj
 (extend-protocol Constraint
   ;; EPVPatterns are implemented in vectors
   IPersistentVector
@@ -206,6 +211,27 @@
   (get-vars [f] (:vars (meta f)))
 
   (left-join [f results graph] (filter-join graph results f)))
+
+:cljs
+(extend-protocol Constraint
+  ;; EPVPatterns are implemented in vectors
+  PersistentVector
+  (get-vars [p] (set (st/vars p)))
+
+  (left-join [p results graph] (pattern-left-join graph results p))
+
+  ;; Filters are implemented in lists
+  List
+  (get-vars [f] (:vars (meta f)))
+  (left-join [f results graph] (filter-join graph results f))
+  
+  ;; Clojurescript needs to handle various lists separately
+  EmptyList
+  (get-vars [f] (:vars (meta f)))
+  (left-join [f results graph] (filter-join graph results f))
+  LazySeq
+  (get-vars [f] (:vars (meta f)))
+  (left-join [f results graph] (filter-join graph results f))))
 
 
 (s/defn plan-path :- [(s/one [Pattern] "Patterns in planned order")
@@ -258,19 +284,32 @@
    data :- Results]
   (reduce (fn [acc d] (apply mem/graph-add acc d)) graph data))
 
-;; Using a cache of 1 is currently redundant to an atom
-(let [m (atom (c/lru-cache-factory {} :threshold 1))]
-  (defn get-count-fn
-    "Returns a memoized counting function for the current graph.
-     These functions only last as long as the current graph."
-    [graph]
-    (if-let [f (c/lookup @m graph)]
-      (do
-        (swap! m c/hit graph)
-        f)
-      (let [f (memoize #(count (mem/resolve-pattern graph %)))]
-        (swap! m c/miss graph f)
-        f))))
+#?(:clj
+  ;; Using a cache of 1 is currently redundant to an atom
+  (let [m (atom (c/lru-cache-factory {} :threshold 1))]
+    (defn get-count-fn
+      "Returns a memoized counting function for the current graph.
+       These functions only last as long as the current graph."
+      [graph]
+      (if-let [f (c/lookup @m graph)]
+        (do
+          (swap! m c/hit graph)
+          f)
+        (let [f (memoize #(count (mem/resolve-pattern graph %)))]
+          (swap! m c/miss graph f)
+          f))))
+
+  :cljs
+  (let [m (atom {})]
+    (defn get-count-fn
+      "Returns a memoized counting function for the current graph.
+       These functions only last as long as the current graph."
+      [graph]
+      (if-let [f (get @m graph)]
+        f
+        (let [f (memoize #(count (mem/resolve-pattern graph %)))]
+          (reset! m {graph f})
+          f)))))
 
 (defrecord MemoryStore [before-graph graph]
   Storage

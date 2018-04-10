@@ -2,15 +2,21 @@
       :author "Paula Gearon"}
     naga.engine
     (:require [naga.schema.structs :as st
-                                   :refer [EPVPattern RulePatternPair
-                                           StatusMap StatusMapEntry Body Program]]
-              [naga.queue :as q]
-              [naga.store :as store]
+               :refer
+               #?(:clj [EPVPattern RulePatternPair
+                        StatusMap StatusMapEntry Body Program]
+                  :cljs [EPVPattern RulePatternPair StatusMap
+                         StatusMapEntry Body Program Rule DynamicRule])]
+              #?(:clj [naga.queue :as q]
+                 :cljs [naga.queue :as q :refer [PQueue]])
+              #?(:clj [naga.store :as store]
+                 :cljs [naga.store :as store :refer [Storage]])
               [naga.util :as u]
               [schema.core :as s])
-    (:import [naga.schema.structs Rule DynamicRule]
-             [naga.store Storage]
-             [naga.queue PQueue]))
+    #?(:clj
+       (:import [naga.schema.structs Rule DynamicRule]
+                [naga.store Storage]
+                [naga.queue PQueue])))
 
 
 (def true* (constantly true))
@@ -79,6 +85,8 @@
   "Executes a program. Data is retrieved from and inserted into db-store."
   [rules :- {s/Str DynamicRule}
    db-store :- Storage]
+  #?(:cljs (js/alert rules))
+  #?(:cljs (js/alert db-store))
   (let [rule-queue (reduce q/add
                            (q/new-queue :salience :name)
                            (vals rules))]
@@ -88,6 +96,8 @@
              :as current-rule} (q/head queue)
 
             remaining-queue (q/pop queue)]
+        #?(:cljs (js/alert (pr-str current-rule)))
+        #?(:cljs (js/alert (pr-str remaining-queue)))
 
         (if (nil? current-rule)
           ;; finished, build results as rule names mapped to how often
@@ -111,6 +121,7 @@
                                                     counted-set
                                                     status)
 
+              #?(:cljs (js/alert (str "counted-patterns: " (pr-str (seq counted-patterns)))))
               ;; is there a NEW result to be had?
               (if (seq counted-patterns)
                 ;; TODO: EXECUTE ACTIONS FOR ACTION RULES

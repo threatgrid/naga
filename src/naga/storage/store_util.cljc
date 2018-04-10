@@ -3,8 +3,9 @@
     naga.storage.store-util
   (:require [schema.core :as s]
             [naga.schema.structs :as st :refer [EPVPattern Value Results Axiom]]
-            [naga.store :as store])
-  (:import [clojure.lang Symbol]))
+            [naga.store :as store]
+            #?(:cljs [cljs.core :refer [Symbol]]))
+  #?(:clj (:import [clojure.lang Symbol])))
 
 (s/defn project-row :- [s/Any]
   "Creates a new EPVPattern from an existing one, based on existing bindings.
