@@ -5,7 +5,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [cheshire.core :as j]
-            [naga.store :as store :refer [Storage]])
+            [naga.store :as store :refer [StorageType]])
   (:import [java.util Map List]))
 
 (def ^:dynamic *current-storage* nil)
@@ -127,7 +127,7 @@
 
 (s/defn string->triples :- [Triple]
   "Converts a string to triples relevant to a store"
-  [storage :- Storage
+  [storage :- StorageType
    s :- s/Str]
   (json->triples storage (j/parse-string s true)))
 
@@ -137,7 +137,7 @@
 
 (s/defn property-values :- [[s/Keyword s/Any]]
   "Return all the property/value pairs for a given entity in the store."
-  [store :- Storage
+  [store :- StorageType
    entity :- s/Any]
   (store/resolve-pattern store [entity '?p '?o]))
 
@@ -145,7 +145,7 @@
 (s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
   "Determines if a value represents a structure. If so, return the property/values for it.
    Otherwise, return nil."
-  [store :- Storage
+  [store :- StorageType
    prop :- s/Any
    v :- s/Any]
   (if (and (not (#{:db/ident :db/id} prop)) (store/node-type? store prop v))
@@ -158,7 +158,7 @@
 (s/defn build-list :- [s/Any]
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
-  [store :- Storage
+  [store :- StorageType
    pairs :- [[s/Keyword s/Any]]]
   ;; convert the data to a map
   (let [st (into {} pairs)]
@@ -175,7 +175,7 @@
 
 (s/defn recurse-node :- s/Any
   "Determines if the val of a map entry is a node to be recursed on, and loads if necessary"
-  [store :- Storage
+  [store :- StorageType
    [prop v :as prop-val] :- [s/Keyword s/Any]]
   (if-let [pairs (check-structure store prop v)]
     [prop (or (build-list store pairs)
@@ -185,7 +185,7 @@
 
 (s/defn pairs->json :- {s/Keyword s/Any}
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
-  [store :- Storage
+  [store :- StorageType
    prop-vals :- [[s/Keyword s/Any]]]
   (dissoc
    (->> prop-vals
@@ -198,14 +198,14 @@
 
 (s/defn id->json :- {s/Keyword s/Any}
   "Uses an id node to load up a nested data structure from the graph"
-  [store :- Storage
+  [store :- StorageType
    entity-id :- s/Any]
   (pairs->json store (property-values store entity-id)))
 
 
 (s/defn ident->json :- {s/Keyword s/Any}
   "Converts data in a database to data structures suitable for JSON encoding"
-  [store :- Storage
+  [store :- StorageType
    ident :- s/Any]
   ;; find the entity by its ident. Some systems will make the id the entity id,
   ;; and the ident will be separate, so look for both.
@@ -215,12 +215,12 @@
 
 (s/defn store->json :- [{s/Keyword s/Any}]
   "Pulls all top level JSON out of a store"
-  [store :- Storage]
+  [store :- StorageType]
   (->> (store/query store '[?e] '[[?e :naga/entity true] [?e :db/ident ?id]])
        (map first)
        (map (partial id->json store))))
 
 (s/defn store->str :- s/Str
   "Reads a store into JSON strings"
-  [store :- Storage]
+  [store :- StorageType]
   (j/generate-string (store->json store)))

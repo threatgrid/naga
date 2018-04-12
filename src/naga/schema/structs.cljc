@@ -1,9 +1,8 @@
 (ns naga.schema.structs
-  #?(:clj (:require [schema.core :as s]
-                    [naga-store.schema.structs :as nss :refer [EPVPattern Pattern Axiom]])
+  #?(:clj  (:require [schema.core :as s]
+                     [naga.schema.store-structs :as nss :refer [EPVPattern Pattern Axiom]])
      :cljs (:require [schema.core :as s :include-macros true]
-                     [naga-store.schema.structs :as nss]))
-  #?(:cljs (:import [naga-store.schema.structs EPVPattern Pattern Axiom])))
+                     [naga.schema.store-structs :as nss :refer [EPVPattern Pattern Axiom]])))
 
 (def RulePatternPair [(s/one s/Str "rule-name")
                       (s/one EPVPattern "pattern")])

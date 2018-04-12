@@ -1,11 +1,14 @@
 (ns naga.rules
     "Defines rule structures and constructors to keep them consistent"
     (:require [clojure.set :as set]
-              [schema.core :as s]
               [naga.util :as u]
+              [naga.schema.store-structs :as ss :refer [EPVPattern Axiom]]
               [naga.schema.structs :as st
-                                   :refer #?(:clj [EPVPattern RulePatternPair Body Axiom Program]
-                                             :cljs [EPVPattern RulePatternPair Body Axiom Program Rule])])
+                                   :refer #?(:clj [RulePatternPair Body Program]
+                                             :cljs [RulePatternPair Body Program Rule])]
+              #?(:clj  [schema.core :as s]
+                 :cljs [schema.core :as s :include-macros true])
+              )
     #?(:clj (:import [naga.schema.structs Rule])))
 
 (defn- gen-rule-name [] (name (gensym "rule-")))
@@ -21,14 +24,14 @@
 
 (defn- vars [constraint]
   (if (list? constraint)
-    (filter st/vartest? (rest constraint))
-    (st/vars constraint)))
+    (filter ss/vartest? (rest constraint))
+    (ss/vars constraint)))
 
 (defn mark-unbound
   "Convert a head to use fresh vars for any vars that are unbound.
    Scans the vars in the body to identify which vars are unbound."
   [head body]
-  (let [all-vars (fn [xs] (set (mapcat (partial filter st/vartest?) xs)))
+  (let [all-vars (fn [xs] (set (mapcat (partial filter ss/vartest?) xs)))
         head-vars (all-vars head)
         body-vars (all-vars body)
         unbound? (set/difference head-vars body-vars)]
