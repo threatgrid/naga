@@ -4,16 +4,16 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojurescript "1.10.238"]
                  [prismatic/schema "1.1.7"]
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "0.7.1"]
                  [the/parsatron "0.0.7"]
                  [cheshire "5.8.0"]
-                 [org.clojure/clojurescript "1.10.126"]
                  [org.clojars.quoll/naga-store "0.1.0-SNAPSHOT"]
                  [org.clojars.quoll/asami "0.2.0-SNAPSHOT"]
                  ; [com.datomic/datomic-pro "0.9.5561"] ; uncomment for Datomic Pro
-                 [com.datomic/datomic-free "0.9.5561"]
+                 [com.datomic/datomic-free "0.9.5697" :exclusions [com.google.guava/guava]]
                  [org.postgresql/postgresql "9.3-1102-jdbc41"]]
   :plugins [[lein-cljsbuild "1.1.7"]]
   :profiles {:dev {:plugins [[lein-kibit "0.1.5"]]}}
