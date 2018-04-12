@@ -2,11 +2,17 @@
       :author "Paula Gearon"}
     naga.data
   (:require [schema.core :as s :refer [=>]]
-            [clojure.java.io :as io]
             [clojure.string :as str]
-            [cheshire.core :as j]
+            #?(:clj [clojure.java.io :as io])
+            #?(:clj [cheshire.core :as j])
             [naga.store :as store :refer [StorageType]])
-  (:import [java.util Map List]))
+  #?(:clj (:import [java.util Map List])))
+
+#?(:clj  (def parse-json-string #(j/parse-string % true))
+   :cljs (def parse-json-string #(js->clj (.parse js/JSON %) :keywordize-keys true)))
+
+#?(:clj  (def json-generate-string j/generate-string)
+   :cljs (def json-generate-string #(.stringify js/JSON (clj->js %))))
 
 (def ^:dynamic *current-storage* nil)
 
@@ -61,18 +67,24 @@
                   triples
                   next-triples)])))
 
-(defmethod value-triples List
-  [vlist]
+(s/defn value-triples-list :- [(s/one s/Any "node ID") (s/one [Triple] "current list of triples")]
+  [vlist :- [s/Any]]
   (let [[node triples :as raw-result] (list-triples vlist)]
     (if triples
       [node (concat triples (containership-triples node triples))]
       raw-result)))
 
-(defmethod value-triples Map      [v] (map->triples v))
+(defmethod value-triples List                        [v] (value-triples-list v))
+#?(:cljs (defmethod value-triples EmptyList          [v] (value-triples-list v)))
+#?(:cljs (defmethod value-triples PersistentVector   [v] (value-triples-list v)))
 
-(defmethod value-triples nil      [v] nil)
+#?(:clj  (defmethod value-triples Map                [v] (map->triples v)))
+#?(:cljs (defmethod value-triples PersistentArrayMap [v] (map->triples v)))
+#?(:cljs (defmethod value-triples PersistentHashMap  [v] (map->triples v)))
 
-(defmethod value-triples :default [v] [v nil])
+(defmethod value-triples nil                         [v] nil)
+
+(defmethod value-triples :default                    [v] [v nil])
 
 
 (s/defn property-vals :- [Triple]
@@ -117,19 +129,24 @@
     (doall (mapcat ident-map->triples j))))
 
 
-(s/defn stream->triples :- [Triple]
-  "Converts a stream to triples relevant to a store"
-  [storage io]
-  (with-open [r (io/reader io)]
-    (let [data (j/parse-stream r true)]
-      (json->triples storage data))))
-
+#?(:clj
+    (s/defn stream->triples :- [Triple]
+      "Converts a stream to triples relevant to a store"
+      [storage io]
+      (with-open [r (io/reader io)]
+        (let [data (j/parse-stream r true)]
+          (json->triples storage data))))
+    
+   :cljs
+    (s/defn stream->triples :- [Triple]
+      [storage io]
+      (throw (ex-info "Unsupported IO" {:io io}))))
 
 (s/defn string->triples :- [Triple]
   "Converts a string to triples relevant to a store"
   [storage :- StorageType
    s :- s/Str]
-  (json->triples storage (j/parse-string s true)))
+  (json->triples storage (parse-json-string s)))
 
 
 ;; extracting from the store
@@ -223,4 +240,4 @@
 (s/defn store->str :- s/Str
   "Reads a store into JSON strings"
   [store :- StorageType]
-  (j/generate-string (store->json store)))
+  (json-generate-string (store->json store)))
