@@ -2,6 +2,8 @@
 
 Datalog based rules engine.
 
+[![Clojars Project](http://clojars.org/org.clojars.quoll/naga/latest-version.svg)](http://clojars.org/org.clojars.quoll/naga)
+
 Naga allows users to load data, and define rules to entailed new data. Once rules have been
 executed, the database will be populated with new inferences which can be queried.
 
