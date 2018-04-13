@@ -42,22 +42,15 @@
       (with-meta p {:count resolution-count}))))
 
 
-(s/defn meta-for :- (s/maybe {s/Keyword s/Any})
-  "Finds the meta on an element in a set, given the element without meta info"
-  [meta-set :- #{ss/EPVPattern}
-   elt :- ss/EPVPattern]
-  #?(:clj (if-let [m-elt (get meta-set elt)]
-            (meta m-elt))
-     :cljs (some #(if (= elt %) (meta %)) meta-set)))
-
 (s/defn mark-rule-cleaned-with-latest-count!
   "Reset the pattern status, making it clean.  Uses meta from
    resolve-count (above). Result should be ignored."
   [dirty-patterns :- [ss/EPVPattern]
-   counted-set :- #{ss/EPVPattern}
+   counted-set :- {ss/EPVPattern ss/EPVPattern} ;; change to #{ss/EPVPattern} after CLJS-2736 is resolved
    status :- StatusMap]
   (doseq [dp dirty-patterns]
-    (let [{c :count} (meta-for counted-set dp)
+    (let [{c :count} (if-let [cp (get counted-set dp)]
+                       (meta cp))
           pattern-status (get status dp)]
       (reset! pattern-status
               {:last-count (or c (:last-count @pattern-status))
@@ -114,7 +107,8 @@
             (let [counted-patterns (keep (partial resolve-count storage status)
                                          dirty-patterns)
 
-                  counted-set (set counted-patterns)
+                  ;; Using an identity map to avoid bug CLJS-2736
+                  counted-set (into {} (map (fn [x] [x x]) counted-patterns))
 
                   hinted-patterns (map #(get counted-set % %) body)]
 
