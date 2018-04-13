@@ -1,11 +1,15 @@
 (ns naga.test-pabu
-  (:require [naga.rules :as r :refer [r rule]]
-            [naga.lang.pabu :refer :all]
-            [schema.test :as st]
-            [clojure.test :refer :all]
+  (:require
+            #?(:clj  [naga.rules :as r :refer [r rule]]
+               :cljs [naga.rules :as r :refer [rule] :refer-macros [r]])
+            [naga.lang.pabu :refer [read-str]]
+            #?(:clj  [schema.test :as st :refer [deftest]]
+               :cljs [schema.test :as st :refer-macros [deftest]])
+            #?(:clj  [clojure.test :as t :refer [is]]
+               :cljs [clojure.test :as t :refer-macros [is]])
             [clojure.pprint :refer [pprint]]))
 
-(use-fixtures :once st/validate-schemas)
+(t/use-fixtures :once st/validate-schemas)
 
 (def program-string
   "sibling(fred, barney).
@@ -59,3 +63,5 @@ parent(A, F) :- father(A, F).
     (is (= test-axioms axioms))
     (is (= (sequence clean test-rules)
            (sequence clean rules)))))
+
+#?(:cljs (t/run-tests))

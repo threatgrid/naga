@@ -8,15 +8,13 @@
                          StatusMapEntry Body Program]
                   :cljs [RulePatternPair StatusMap
                          StatusMapEntry Body Program Rule DynamicRule])]
-              #?(:clj [naga.queue :as q]
-                 :cljs [naga.queue :as q :refer [PQueue]])
+              [naga.queue :as q :refer [PQueueType]]
               [naga.store-registry :as store-registry]
               [naga.store :as store :refer [StorageType]]
               [naga.util :as u]
               [schema.core :as s])
     #?(:clj
-       (:import [naga.schema.structs Rule DynamicRule]
-                [naga.queue PQueue])))
+       (:import [naga.schema.structs Rule DynamicRule])))
 
 
 (def true* (constantly true))
@@ -44,6 +42,14 @@
       (with-meta p {:count resolution-count}))))
 
 
+(s/defn meta-for :- (s/maybe {s/Keyword s/Any})
+  "Finds the meta on an element in a set, given the element without meta info"
+  [meta-set :- #{ss/EPVPattern}
+   elt :- ss/EPVPattern]
+  #?(:clj (if-let [m-elt (get meta-set elt)]
+            (meta m-elt))
+     :cljs (some #(if (= elt %) (meta %)) meta-set)))
+
 (s/defn mark-rule-cleaned-with-latest-count!
   "Reset the pattern status, making it clean.  Uses meta from
    resolve-count (above). Result should be ignored."
@@ -51,9 +57,7 @@
    counted-set :- #{ss/EPVPattern}
    status :- StatusMap]
   (doseq [dp dirty-patterns]
-    (let [{c :count} (if-let [cp (get counted-set dp)]
-                       (meta cp))
-
+    (let [{c :count} (meta-for counted-set dp)
           pattern-status (get status dp)]
       (reset! pattern-status
               {:last-count (or c (:last-count @pattern-status))
@@ -65,7 +69,7 @@
    The queue will adjust order according to salience, if necessary.
    Also marks relevant patterns in the downstream rule bodies as dirty."
   [rules :- {s/Str DynamicRule}
-   remaining-queue :- PQueue
+   remaining-queue :- PQueueType
    downstream :- [RulePatternPair]]
 
   (reduce (fn [rqueue [rname pattern]]
@@ -85,19 +89,16 @@
   "Executes a program. Data is retrieved from and inserted into db-store."
   [rules :- {s/Str DynamicRule}
    db-store :- StorageType]
-  #?(:cljs (js/alert rules))
-  #?(:cljs (js/alert db-store))
   (let [rule-queue (reduce q/add
                            (q/new-queue :salience :name)
                            (vals rules))]
     (loop [queue rule-queue
-           storage db-store]
+           storage db-store
+           loop-count 0]
       (let [{:keys [status body head downstream execution-count]
              :as current-rule} (q/head queue)
 
             remaining-queue (q/pop queue)]
-        #?(:cljs (js/alert (pr-str current-rule)))
-        #?(:cljs (js/alert (pr-str remaining-queue)))
 
         (if (nil? current-rule)
           ;; finished, build results as rule names mapped to how often
@@ -121,7 +122,6 @@
                                                     counted-set
                                                     status)
 
-              #?(:cljs (js/alert (str "counted-patterns: " (pr-str (seq counted-patterns)))))
               ;; is there a NEW result to be had?
               (if (seq counted-patterns)
                 ;; TODO: EXECUTE ACTIONS FOR ACTION RULES
@@ -139,13 +139,13 @@
                                                                  remaining-queue
                                                                  downstream)]
                   (swap! execution-count inc)
-                  (recur scheduled-queue updated-storage))
+                  (recur scheduled-queue updated-storage (inc loop-count)))
 
                 ;; no new results, so move to next
-                (recur remaining-queue storage)))
+                (recur remaining-queue storage (inc loop-count))))
 
             ;; no dirty patterns, so rule did not need to be run
-            (recur remaining-queue storage)))))))
+            (recur remaining-queue storage (inc loop-count))))))))
 
 (s/defn initialize-rules :- {s/Str DynamicRule}
   "Takes rules with calculated dependencies, and initializes them"

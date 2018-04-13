@@ -77,7 +77,6 @@
                      :axioms [Axiom]}
   "Reads a string"
   [s :- s/Str]
-  #?(:cljs (.log js/console "Reading a string.") )
   (let [program-ast (parser/parse s)
         axioms (filter (comp (partial = :axiom) :type) program-ast)
         rules (filter (comp (partial = :rule) :type) program-ast)]

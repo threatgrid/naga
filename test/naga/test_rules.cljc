@@ -1,16 +1,20 @@
 (ns naga.test-rules
-  (:require [naga.rules :as r :refer [r]]
+  (:require
             [naga.schema.structs :as structs :refer [new-rule]]
+            #?(:clj  [naga.rules :as r :refer [r]]
+               :cljs [naga.rules :as r :refer-macros [r]])
             [naga.engine :as e]
             [naga.store :as store]
             [naga.store-registry :as store-registry]
             [naga.storage.test :as stest]
             [asami.core :as mem]
-            [schema.test :as st]
-            [clojure.test :refer :all]
+            #?(:clj  [schema.test :as st :refer [deftest]]
+               :cljs [schema.test :as st :refer-macros [deftest]])
+            #?(:clj  [clojure.test :as t :refer [is]]
+               :cljs [clojure.test :as t :refer-macros [is]])
             [clojure.pprint :refer [pprint]]))
 
-(use-fixtures :once st/validate-schemas)
+(t/use-fixtures :once st/validate-schemas)
 
 (def rules
   [(r "shared-parent" [?b :parent ?c] :- [?a :sibling ?b] [?a :parent ?c])
@@ -188,3 +192,5 @@
     (println)
     (pprint results)
     ))
+
+#?(:cljs (t/run-tests))

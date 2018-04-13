@@ -1,7 +1,11 @@
 (ns naga.test-queue
-  (:require [clojure.test :refer :all]
-            [naga.queue :as q]
-            [schema.core :as s]))
+  (:require [naga.queue :as q]
+            #?(:clj  [clojure.test :as t :refer [is]]
+               :cljs [clojure.test :as t :refer-macros [is]])
+            #?(:clj  [schema.test :as st :refer [deftest]]
+               :cljs [schema.test :as st :refer-macros [deftest]])))
+
+(t/use-fixtures :once st/validate-schemas)
 
 (deftest simple
   "Test adding to an identity queue, without salience"
@@ -63,3 +67,5 @@
         (is (= [1 2 1 3 1 2] (map df (q/drain q3))))
         (let [q4 (-> q3 q/pop q/pop q/pop (adder {:id 4}) (adder {:id 1}) (adder {:id 2}))]
           (is (= [3 6 5 4 1 2] (map :id (q/drain q4)))))))))
+
+#?(:cljs (t/run-tests))
