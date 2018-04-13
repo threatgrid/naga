@@ -1,9 +1,10 @@
 (ns naga.test-data
-  (:require [clojure.test :refer :all]
-            [naga.data :refer :all]
+  (:require [naga.data :refer [string->triples json->triples store->json]]
             [naga.storage.test :as st]
             [naga.store :as store]
-            [naga.storage.memory.core :refer [empty-store]]))
+            [asami.core :refer [empty-store]]
+            #?(:clj  [clojure.test :as t :refer [deftest is]]
+               :cljs [clojure.test :as t :refer-macros [deftest is]])))
 
 (deftest test-encode-from-string
   (let [m1 (string->triples (st/new-store)
@@ -142,3 +143,5 @@
     (is (= d3 dr3))
     (is (= d4 dr4))
     (is (= d5 dr5))))
+
+#?(:cljs (t/run-tests))

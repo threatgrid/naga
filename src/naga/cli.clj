@@ -5,17 +5,18 @@
             [clojure.string :as string]
             [clojure.java.io :as io]
             [naga.lang.pabu :as pabu]
+            [naga.store-registry :as store-registry]
+            [naga.store :as store]
             [naga.rules :as r]
             [naga.engine :as e]
-            [naga.store :as store]
             [naga.data :as data]
-            [naga.storage.memory.core]
+            [asami.core]
             [naga.storage.datomic.core])
   (:import [clojure.lang ExceptionInfo]
            [java.net URI]
            [java.io File]))
 
-(def stores (set (map name (keys @store/registered-stores))))
+(def stores (set (map name (keys @store-registry/registered-stores))))
 
 (def valid-output? #(.exists (.getParentFile (.getAbsoluteFile (File. %)))))
 (def valid-input? #(.exists (File. %)))
@@ -78,7 +79,7 @@
   (let [{:keys [rules axioms]} (pabu/read-stream in)
 
         ;; instantiate a database. Config may include initialization data
-        fresh-store (store/get-storage-handle config)
+        fresh-store (store-registry/get-storage-handle config)
 
         ;; assert the initial axioms. The program can do that, but
         ;; we want to do it here so we can see the original store
@@ -130,7 +131,7 @@
   [in-stream json-file out-file store-config]
   (when-not out-file
     (exit 2 "No output json file specified"))
-  (let [fresh-store (store/get-storage-handle store-config)
+  (let [fresh-store (store-registry/get-storage-handle store-config)
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
@@ -162,4 +163,4 @@
     (catch ExceptionInfo e
       (binding [*out* *err*]
         (println (.getMessage e))))
-    (finally (store/shutdown))))
+    (finally (store-registry/shutdown))))

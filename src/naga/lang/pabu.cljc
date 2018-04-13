@@ -1,8 +1,8 @@
 (ns naga.lang.pabu
   "Implements Pabu, which is a Prolog-like language for Naga.  Parses code and returns Naga rules."
-  (:require [naga.schema.structs :as structs :refer
-                                 #?(:clj [Axiom Program Triple]
-                                    :cljs [Axiom Program Triple Rule])]
+  (:require [naga.schema.store-structs :refer [Axiom Triple]]
+            [naga.schema.structs :as structs :refer #?(:clj [Program]
+                                                       :cljs [Program Rule])]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
             [naga.util :as u]
@@ -77,7 +77,6 @@
                      :axioms [Axiom]}
   "Reads a string"
   [s :- s/Str]
-  #?(:cljs (.log js/console "Reading a string.") )
   (let [program-ast (parser/parse s)
         axioms (filter (comp (partial = :axiom) :type) program-ast)
         rules (filter (comp (partial = :rule) :type) program-ast)]

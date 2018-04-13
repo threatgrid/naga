@@ -10,7 +10,7 @@
                                             digit letter always
                                             between fail]
                                     :refer-macros [>> let->> defparser]])
-            [naga.schema.structs :as st]))
+            [naga.schema.store-structs :as ss]))
 
 #?(:cljs (defn is-letter? [c] (.match c #"[a-zA-Z]")))
 
@@ -158,7 +158,7 @@
   [l]
   (-> #{}
       (into (keep (comp :vars meta) l))
-      (into (st/vars l))))
+      (into (ss/vars l))))
 
 (defparser arg-list []
   (let->> [f (elt)

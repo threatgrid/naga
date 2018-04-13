@@ -17,9 +17,11 @@ of less salient elements."
     [queue update-fn element]
     "Adds an element to the queue if it isn't already present, returning the new queue. Uses update-fn on the element if it is already in the queue"))
 
+(def PQueueType (s/pred #(satisfies? PQueue %)))
+
 (s/defn insert-by :- [s/Any]
   [s :- [s/Any]
-   salience :- (=> s/Num s/Any)          ;; element -> number
+   salience :- (s/maybe (=> s/Num s/Any))   ;; element -> number
    e :- s/Any]
   (let [preamble (if (and salience (salience e))
                    (take-while #(>= (salience e) (salience %)) s)
@@ -32,7 +34,7 @@ of less salient elements."
   [q ;; :- [s/Any]
    h ;; :- #{s/Any}
    id-fn ;; :- (=> s/Any s/Any)  ;; element -> ID (id: string, number, etc)
-   salience-fn ;; :- (=> s/Num s/Any)  ;; element -> number
+   salience-fn ;; :- (s/maybe (=> s/Num s/Any))  ;; element -> number
   ]
   PQueue
   (q-count [_] (count q))
@@ -57,7 +59,7 @@ of less salient elements."
    and update and ID are just identity."
   ([]
    (new-queue nil identity))
-  ([salience-fn :- (=> s/Num s/Any)
+  ([salience-fn :- (s/maybe (=> s/Num s/Any))
     id-fn :- (=> s/Any s/Any)]
    (->SalienceQueue '() #{} id-fn salience-fn)))
 

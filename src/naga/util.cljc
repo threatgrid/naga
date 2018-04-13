@@ -34,12 +34,15 @@
      "Looks up a namespace:name function represented in a keyword,
       and if it exists, return it. Otherwise nil"
      [kw :- (s/cond-pre s/Keyword s/Symbol)]
-     (let [snm (symbol (namespace kw) (name kw))]
-       (:value
-        (cljs.js/eval (cljs.js/empty-state)
-                      snm
-                      {:eval cljs.js/js-eval :source-map true :context :expr}
-                      identity)))))
+     (when-let [nms (namespace kw)]
+       (let [snm (symbol nms (name kw))]
+         (try
+           (:value
+            (cljs.js/eval (cljs.js/empty-state)
+                          snm
+                          {:eval cljs.js/js-eval :source-map true :context :expr}
+                          identity))
+           (catch :default _ ))))))
 
 (s/defn divide' :- [[s/Any] [s/Any]]
   "Takes a predicate and a sequence and returns 2 sequences.

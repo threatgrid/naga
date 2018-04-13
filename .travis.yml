@@ -5,6 +5,7 @@ install:
 
 script:
   - lein test
+  - lein cljsbuild test
 
 notifications:
   email:

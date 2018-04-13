@@ -2,14 +2,15 @@
       :author "Paula Gearon"}
     naga.storage.datomic.core
   (:require [naga.store :as store]
+            [naga.store-registry :as store-registry]
             [naga.storage.datomic.init :as init]
             [naga.storage.datomic.schema :as sch]
             [naga.storage.store-util :as store-util]
-            [naga.schema.structs :as ns]
+            [naga.schema.store-structs :as nss]
             [naga.util :as u]
             [schema.core :as s]
             [cheshire.core :as j]
-            [naga.schema.structs :as st
+            [naga.schema.store-structs :as ss
                                  :refer [EPVPattern FilterPattern Pattern Results Value]]
             [clojure.string :as str]
             [clojure.edn :as edn]
@@ -87,7 +88,7 @@
           (seq
            (map-indexed
             (fn [nf vf]
-              (if (and (st/vartest? vf) (= vt vf))
+              (if (and (ss/vartest? vf) (= vt vf))
                 [nf nt]))
             to))))
        (apply concat)))
@@ -103,7 +104,7 @@
                                   (s/one s/Any "value")]
   "Converts a triple into a Datomic assertion"
   [attr->type->new :- {s/Keyword {s/Keyword s/Keyword}}
-   [e a v] :- ns/Triple]
+   [e a v] :- nss/Triple]
   (let [m (attr->type->new a)
         na (if m (m (type->dbtype (generic-type v)) :err/unscanned) a)]
     [:db/add e na v]))
@@ -374,7 +375,7 @@
             (throw (ex-info "Unable to read initialization file"
                             {:file user-data-file :ex e}))))))))
 
-(s/defn create-store :- Storage
+(s/defn create-store :- (s/pred #(extends? Storage (class %)))
   "Factory function to create a store"
   [{uri :uri user-data :init data-file :json mp :map :as config}]
   (let [uri (build-uri uri mp)
@@ -389,4 +390,4 @@
         attr (read-attribute-info db)]
     (->DatomicStore connection db attr nil nil)))
 
-(store/register-storage! :datomic create-store #(d/shutdown true))
+(store-registry/register-storage! :datomic create-store #(d/shutdown true))

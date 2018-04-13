@@ -1,6 +1,7 @@
 (ns naga.storage.test
   (:require [naga.store :as store :refer [Storage]]
-            [schema.core :as s]))
+            #?(:clj  [schema.core :as s]
+               :cljs [schema.core :as s :include-macros true])))
 
 (s/defrecord TestStore [data n]
   Storage

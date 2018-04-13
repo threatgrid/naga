@@ -1,22 +1,26 @@
 (ns ^{:doc "Functions to run rules until completion."
       :author "Paula Gearon"}
     naga.engine
-    (:require [naga.schema.structs :as st
-                                   :refer [EPVPattern RulePatternPair
-                                           StatusMap StatusMapEntry Body Program]]
-              [naga.queue :as q]
-              [naga.store :as store]
+    (:require [naga.schema.store-structs :as ss :refer [#_EPVPattern]]
+              [naga.schema.structs :as st
+               :refer
+               #?(:clj  [RulePatternPair StatusMap
+                         StatusMapEntry Body Program]
+                  :cljs [RulePatternPair StatusMap
+                         StatusMapEntry Body Program Rule DynamicRule])]
+              [naga.queue :as q :refer [PQueueType]]
+              [naga.store-registry :as store-registry]
+              [naga.store :as store :refer [StorageType]]
               [naga.util :as u]
               [schema.core :as s])
-    (:import [naga.schema.structs Rule DynamicRule]
-             [naga.store Storage]
-             [naga.queue PQueue]))
+    #?(:clj
+       (:import [naga.schema.structs Rule DynamicRule])))
 
 
 (def true* (constantly true))
 
 
-(s/defn extract-dirty-pattern :- (s/maybe EPVPattern)
+(s/defn extract-dirty-pattern :- (s/maybe ss/EPVPattern)
   "Takes a key and value pair (from a status map) and determines if
   the value (a ConstraintData) is marked dirty.  If it is dirty, then return
   the key (an EPVPattern)."
@@ -25,13 +29,13 @@
     p))
 
 
-(s/defn resolve-count :- (s/maybe EPVPattern)
+(s/defn resolve-count :- (s/maybe ss/EPVPattern)
   "Resolve a pattern against storage, and set the :resolution meta
   data if the result is different from the last resolution.  Requires
   a status map in order to lookup the last-count."
-  [storage :- Storage
+  [storage :- StorageType
    status :- StatusMap
-   p :- EPVPattern]
+   p :- ss/EPVPattern]
   (let [resolution-count (store/count-pattern storage p)
         last-count (:last-count @(get status p))]
     (when-not (= last-count resolution-count)
@@ -41,13 +45,12 @@
 (s/defn mark-rule-cleaned-with-latest-count!
   "Reset the pattern status, making it clean.  Uses meta from
    resolve-count (above). Result should be ignored."
-  [dirty-patterns :- [EPVPattern]
-   counted-set :- #{EPVPattern}
+  [dirty-patterns :- [ss/EPVPattern]
+   counted-set :- {ss/EPVPattern ss/EPVPattern} ;; change to #{ss/EPVPattern} after CLJS-2736 is resolved
    status :- StatusMap]
   (doseq [dp dirty-patterns]
     (let [{c :count} (if-let [cp (get counted-set dp)]
                        (meta cp))
-
           pattern-status (get status dp)]
       (reset! pattern-status
               {:last-count (or c (:last-count @pattern-status))
@@ -59,7 +62,7 @@
    The queue will adjust order according to salience, if necessary.
    Also marks relevant patterns in the downstream rule bodies as dirty."
   [rules :- {s/Str DynamicRule}
-   remaining-queue :- PQueue
+   remaining-queue :- PQueueType
    downstream :- [RulePatternPair]]
 
   (reduce (fn [rqueue [rname pattern]]
@@ -74,16 +77,17 @@
           downstream)) ;; contains rule-name/pattern pairs for update
 
 
-(s/defn execute :- [(s/one Storage "Final value of storage")
+(s/defn execute :- [(s/one StorageType "Final value of storage")
                     (s/one {s/Str s/Num} "Map of rule name to execution count")]
   "Executes a program. Data is retrieved from and inserted into db-store."
   [rules :- {s/Str DynamicRule}
-   db-store :- Storage]
+   db-store :- StorageType]
   (let [rule-queue (reduce q/add
                            (q/new-queue :salience :name)
                            (vals rules))]
     (loop [queue rule-queue
-           storage db-store]
+           storage db-store
+           loop-count 0]
       (let [{:keys [status body head downstream execution-count]
              :as current-rule} (q/head queue)
 
@@ -103,7 +107,8 @@
             (let [counted-patterns (keep (partial resolve-count storage status)
                                          dirty-patterns)
 
-                  counted-set (set counted-patterns)
+                  ;; Using an identity map to avoid bug CLJS-2736
+                  counted-set (into {} (map (fn [x] [x x]) counted-patterns))
 
                   hinted-patterns (map #(get counted-set % %) body)]
 
@@ -128,13 +133,13 @@
                                                                  remaining-queue
                                                                  downstream)]
                   (swap! execution-count inc)
-                  (recur scheduled-queue updated-storage))
+                  (recur scheduled-queue updated-storage (inc loop-count)))
 
                 ;; no new results, so move to next
-                (recur remaining-queue storage)))
+                (recur remaining-queue storage (inc loop-count))))
 
             ;; no dirty patterns, so rule did not need to be run
-            (recur remaining-queue storage)))))))
+            (recur remaining-queue storage (inc loop-count))))))))
 
 (s/defn initialize-rules :- {s/Str DynamicRule}
   "Takes rules with calculated dependencies, and initializes them"
@@ -150,13 +155,13 @@
                     [rule-name (init-rule rule)])
                   rules))))
 
-(s/defn run :- [(s/one Storage "Resulting data store")
+(s/defn run :- [(s/one StorageType "Resulting data store")
                 (s/one {s/Str s/Num} "Execution stats")
                 (s/one (s/maybe {s/Str s/Num}) "Execution stats")]
   "Runs a program against a given configuration"
   [config :- {s/Keyword s/Any}
    {:keys [rules axioms]} :- Program]
-  (let [storage (store/get-storage-handle config)
+  (let [storage (store-registry/get-storage-handle config)
         storage' (store/start-tx storage)
         rules' (initialize-rules rules)
         initialized-storage (store/assert-data storage' axioms)

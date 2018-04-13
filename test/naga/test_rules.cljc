@@ -1,15 +1,20 @@
 (ns naga.test-rules
-  (:require [naga.rules :as r :refer [r]]
+  (:require
             [naga.schema.structs :as structs :refer [new-rule]]
+            #?(:clj  [naga.rules :as r :refer [r]]
+               :cljs [naga.rules :as r :refer-macros [r]])
             [naga.engine :as e]
             [naga.store :as store]
+            [naga.store-registry :as store-registry]
             [naga.storage.test :as stest]
-            [naga.storage.memory.core :as mem]
-            [schema.test :as st]
-            [clojure.test :refer :all]
+            [asami.core :as mem]
+            #?(:clj  [schema.test :as st :refer [deftest]]
+               :cljs [schema.test :as st :refer-macros [deftest]])
+            #?(:clj  [clojure.test :as t :refer [is]]
+               :cljs [clojure.test :as t :refer-macros [is]])
             [clojure.pprint :refer [pprint]]))
 
-(use-fixtures :once st/validate-schemas)
+(t/use-fixtures :once st/validate-schemas)
 
 (def rules
   [(r "shared-parent" [?b :parent ?c] :- [?a :sibling ?b] [?a :parent ?c])
@@ -57,14 +62,14 @@
       (is (= 4 (name->count "stub2"))))))
 
 (deftest run-family
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
   (let [program (r/create-program rules axioms)
         [store results] (e/run {:type :memory} program)
         unk (store/resolve-pattern store '[?n :uncle ?u])]
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk))))
 
-  (let [fresh-store (store/get-storage-handle {:type :memory})
+  (let [fresh-store (store-registry/get-storage-handle {:type :memory})
         original-store (store/assert-data fresh-store axioms)
         config {:type :memory :store original-store}
         program (r/create-program rules [])
@@ -74,7 +79,7 @@
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
 (deftest multi-prop
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
   (let [r2 [(r "multi-prop" [?x :first :a] [?x :second :b] :- [?x :foo ?y])]
         a2 [[:data :foo :bar]]
         program (r/create-program r2 a2)
@@ -85,7 +90,7 @@
     (is (= #{[:data :foo :bar] [:data :first :a] [:data :second :b]} (set data)))))
 
 (deftest blank-prop
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
   (let [rx [(r "multi-prop" [?z :first :a] :- [?x :foo ?y])]
         ax [[:data :foo :bar]]
         program (r/create-program rx ax)
@@ -98,7 +103,7 @@
     (is (apply = (map first data')))))
 
 (deftest blank-multi-prop
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
         ax [[:data :foo :bar]]
         program (r/create-program rx ax)
@@ -148,7 +153,7 @@
 
 
 (deftest loop-breaking
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])
             (r "bad-loop" [?x :foo ?b] :- [?a :first ?b])] ;; gets run once!
         ax [[:data :foo :bar]]
@@ -166,7 +171,7 @@
 
 (defn demo-family
   []
-  (store/register-storage! :memory mem/create-store)
+  (store-registry/register-storage! :memory mem/create-store)
 
   (let [program (r/create-program rules axioms)
         [store results] (e/run {:type :memory} program)
@@ -187,3 +192,5 @@
     (println)
     (pprint results)
     ))
+
+#?(:cljs (t/run-tests))
