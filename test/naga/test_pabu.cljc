@@ -1,8 +1,8 @@
 (ns naga.test-pabu
   (:require
             #?(:clj  [naga.rules :as r :refer [r rule]]
-               :cljs [naga.rules :as r :refer [rule] :refer-macros [r]])
-            [naga.lang.pabu :refer [read-str]]
+               :cljs [naga.rules :as r :refer [rule rule->str] :refer-macros [r]])
+            [naga.lang.pabu :refer [read-str rule->str]]
             #?(:clj  [schema.test :as st :refer [deftest]]
                :cljs [schema.test :as st :refer-macros [deftest]])
             #?(:clj  [clojure.test :as t :refer [is]]
@@ -63,5 +63,16 @@ parent(A, F) :- father(A, F).
     (is (= test-axioms axioms))
     (is (= (sequence clean test-rules)
            (sequence clean rules)))))
+
+(deftest emit-program
+  (let [[r1 r2 r3 r4 r5 r6] (map rule->str test-rules)
+        rn (rule->str (r "a-name" [?a :foo ?b] :- [?a :bar ?b]) true)]
+    (is (= r1 "parent(B, C) :- sibling(A, B), parent(A, C)."))
+    (is (= r2 "brother(A, B) :- sibling(A, B), gender(B, male)."))
+    (is (= r3 "uncle(A, C) :- parent(A, B), brother(B, C)."))
+    (is (= r4 "sibling(A, B) :- parent(A, P), parent(B, P), A != B."))
+    (is (= r5 "gender(F, male) :- father(A, F)."))
+    (is (= r6 "parent(A, F) :- father(A, F)."))
+    (is (= rn "foo(A, B) :- bar(A, B).    /* a-name */"))))
 
 #?(:cljs (t/run-tests))
