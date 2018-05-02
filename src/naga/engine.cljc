@@ -157,7 +157,7 @@
 
 (s/defn run :- [(s/one StorageType "Resulting data store")
                 (s/one {s/Str s/Num} "Execution stats")
-                (s/one (s/maybe {s/Str s/Num}) "Execution stats")]
+                (s/one (s/maybe [s/Any]) "Delta IDs")]
   "Runs a program against a given configuration"
   [config :- {s/Keyword s/Any}
    {:keys [rules axioms]} :- Program]
