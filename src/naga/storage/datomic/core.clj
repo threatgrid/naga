@@ -171,12 +171,12 @@
 (defn top-ids
   "Adds to an accumulator all Database entities that represent a top level entity"
   [db ids acc]
-  (let [eids (q '[:find ?i
+  (let [eids (q '[:find [?i ...]
                   :in $ [?i ...]
                   :where [?i :naga/entity]] db ids)
         eids? (into #{} eids) 
         parented-ids (remove eids? ids)
-        pids (q '[:find ?pid
+        pids (q '[:find [?pid ...]
                   :in $ [?i ...]
                   :where [?pid ?a ?i]] db parented-ids)
         pids' (remove (into #{} parented-ids) pids)] ;; remove potential loops

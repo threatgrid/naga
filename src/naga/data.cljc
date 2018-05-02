@@ -11,8 +11,19 @@
 #?(:clj  (def parse-json-string #(j/parse-string % true))
    :cljs (def parse-json-string #(js->clj (.parse js/JSON %) :keywordize-keys true)))
 
-#?(:clj  (def json-generate-string j/generate-string)
-   :cljs (def json-generate-string #(.stringify js/JSON (clj->js %))))
+#?(:clj
+   (defn json-generate-string
+     ([data] (j/generate-string data))
+     ([data indent]
+      (j/generate-string
+       data
+       (assoc j/default-pretty-print-options
+              :indentation (apply str (repeat indent \space))))))
+
+   :cljs
+   (defn json-generate-string
+     ([data] (.stringify js/JSON (clj->js data)))
+     ([data indent] (.stringify js/JSON (clj->js data) nil indent))))
 
 (def ^:dynamic *current-storage* nil)
 
@@ -239,5 +250,20 @@
 
 (s/defn store->str :- s/Str
   "Reads a store into JSON strings"
+  ([store :- StorageType]
+   (json-generate-string (store->json store)))
+  ([store :- StorageType, indent :- s/Num]
+   (json-generate-string (store->json store) indent)))
+
+(s/defn delta->json :- [{s/Keyword s/Any}]
+  "Pulls all top level JSON out of a store"
   [store :- StorageType]
-  (json-generate-string (store->json store)))
+  (->> (store/deltas store)
+       (map (partial id->json store))))
+
+(s/defn delta->str :- s/Str
+  "Reads a store into JSON strings"
+  ([store :- StorageType]
+   (json-generate-string (delta->json store)))
+  ([store :- StorageType, indent :- s/Num]
+   (json-generate-string (delta->json store) indent)))
