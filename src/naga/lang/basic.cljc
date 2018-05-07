@@ -3,11 +3,11 @@
   (:require [clojure.string :as str]
             #?(:clj [the.parsatron :refer [char token choice attempt either
                                            string many many1 >> let->>
-                                           digit letter always defparser
+                                           digit letter always never defparser
                                            between fail]]
                :cljs [the.parsatron :refer [char token choice attempt either
                                             string many many1
-                                            digit letter always
+                                            digit letter always never
                                             between fail]
                                     :refer-macros [>> let->> defparser]])
             [naga.schema.store-structs :as ss]))
@@ -143,11 +143,11 @@
     (let [wrd (str/join r)]
       (if-let [k (build-keyword wrd)]
         (always k)
-        (throw (fail (str "Invalid identifier: " wrd)))))))
+        (never)))))
 
 ;; an atom is a atomic value, a number or a string
 (defparser atm []
-  (choice (kw) pstring number))
+  (choice* (kw) pstring number))
 
 ;; elements in a statement are atoms or a variable
 (defparser elt []

@@ -52,6 +52,11 @@ parent(A, F) :- father(A, F).
     (is (= [[:bar :foo :baz]] axioms))
     (is (empty? rules))))
 
+(deftest parse-literal
+  (let [{:keys [axioms rules]} (read-str "foo(bar, 3).")]
+    (is (= [[:bar :foo 3]] axioms))
+    (is (empty? rules))))
+
 (deftest parse-rule
   (let [{:keys [axioms rules]} (read-str "bar(baz, Y) :- foo(X, baz).")]
     (is (empty? axioms))
