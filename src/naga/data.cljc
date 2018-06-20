@@ -126,11 +126,14 @@
 
 (s/defn ident-map->triples :- [s/Any [Triple]]
   "Converts a single map to triples for an ID'ed map"
-  [j]
-  (let [[id triples] (map->triples j)]
-    (if (:db/ident j)
-      triples
-      (concat [[id :db/ident (name-for id)] [id :naga/entity true]] triples))))
+  ([storage j]
+   (binding [*current-storage* storage]
+     (ident-map->triples j)))
+  ([j]
+   (let [[id triples] (map->triples j)]
+     (if (:db/ident j)
+       triples
+       (concat [[id :db/ident (name-for id)] [id :naga/entity true]] triples)))))
 
 
 (s/defn json->triples :- [Triple]
@@ -267,3 +270,26 @@
    (json-generate-string (delta->json store)))
   ([store :- StorageType, indent :- s/Num]
    (json-generate-string (delta->json store) indent)))
+
+
+;; updating the store
+
+(s/defn existing-triples
+  [storage id [k v]]
+  (if-let [subpv (check-structure storage k v)]
+    (cons [id k v] (mapcat (partial existing-triples storage v) subpv))
+    [[id k v]]))
+
+(s/defn json-update->triples :- [(s/one [Triple] "assertions") (s/one [Triple] "retractions")]
+  "Takes a single structure and converts it into triples to be added and triples to be retracted to create a change"
+  [storage id j]
+  (binding [*current-storage* storage]
+    (let [pvs (property-values storage id)
+          old-node (pairs->json storage pvs)
+          to-remove (remove (fn [[k v]] (if-let [newv (get j k)] (= v newv))) old-node)
+          pvs-to-remove (filter (comp (set (map first to-remove)) first) pvs)
+          triples-to-remove (mapcat (partial existing-triples storage id) pvs-to-remove)
+
+          to-add (remove (fn [[k v]] (when-let [new-val (get old-node k)] (= new-val v))) j)
+          triples-to-add (doall (mapcat (partial property-vals id) to-add))]
+      [triples-to-add triples-to-remove])))
