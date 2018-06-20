@@ -45,7 +45,8 @@
       (if-let [f (and (keyword? p) (u/get-fn-reference p))]
         [(with-meta (cons f args) (meta args))]
         (triplets ast-data)))
-    [ast-data]))
+    ;; a filter predicate. Wrap in extra vector for syntax purposes
+    [[ast-data]]))
 
 (s/defn ast->axiom :- Axiom
   "Converts the axiom structure returned from the parser"
@@ -122,7 +123,7 @@
       3 (if (= :rdf/type p) (str v "(" e ")") (str p "(" e ", " v ")")))))
 
 (s/defn filter->string :- s/Str
-  [p :- FilterPattern]
+  [[p] :- FilterPattern]
   (let [args (map ps p)]
     (if (builtin-labels (first args))
       (let [[op l r] args]
@@ -131,9 +132,11 @@
 
 (s/defn pattern->string :- s/Str
   [p :- Pattern]
-  (cond
-    (vector? p) (predicate->string p)
-    (list? p) (filter->string p)))
+  (if (vector? p)
+    (if (list? (first p))
+      (filter->string p)
+      (predicate->string p))
+    (throw (ex-info "Unknown structure type" {:pattern p}))))
 
 (s/defn rule->str :- s/Str
   "Creates a textual representation for the rule"

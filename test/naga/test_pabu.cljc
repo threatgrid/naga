@@ -30,7 +30,7 @@ parent(A, F) :- father(A, F).
   [(r [?b :parent ?c] :- [?a :sibling ?b] [?a :parent ?c])
    (r [?a :brother ?b] :- [?a :sibling ?b] [?b :gender :male])
    (r [?a :uncle ?c] :- [?a :parent ?b] [?b :brother ?c])
-   (rule '[[?a :sibling ?b]]  ['[?a :parent ?p] '[?b :parent ?p] (list not= '?a '?b)])
+   (rule '[[?a :sibling ?b]]  ['[?a :parent ?p] '[?b :parent ?p] [(list not= '?a '?b)]])
    (r [?f :gender :male] :- [?a :father ?f])
    (r [?a :parent ?f] :- [?a :father ?f])])
 

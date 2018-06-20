@@ -23,8 +23,8 @@
   (and (symbol? x) (= \% (first (name x)))))
 
 (defn- vars [constraint]
-  (if (list? constraint)
-    (filter ss/vartest? (rest constraint))
+  (if (list? (first constraint))
+    (filter ss/vartest? (rest (first constraint)))
     (ss/vars constraint)))
 
 (defn mark-unbound
@@ -41,8 +41,8 @@
   "Creates a new rule"
   ([head body] (rule head body (gen-rule-name)))
   ([head body name]
-   (assert (and (sequential? body) (or (empty? body) (every? sequential? body)))
-           "Body must be a sequence of constraints")
+   (assert (and (sequential? body) (or (empty? body) (every? vector? body)))
+           (str "Body must be a sequence of constraints: " (into [] body)))
    (assert (and (sequential? head) (or (empty? head) (every? sequential? head)))
            "Head must be a sequence of constraints")
    (assert (every? (complement fresh-var?) (mapcat vars body))
