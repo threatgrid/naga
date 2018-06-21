@@ -1,5 +1,5 @@
 (ns naga.test-data
-  (:require [naga.data :refer [string->triples json->triples store->json]]
+  (:require [naga.data :refer [string->triples json->triples store->json json-update->triples]]
             [naga.storage.test :as st]
             [naga.store :as store]
             [asami.core :refer [empty-store]]
@@ -143,5 +143,34 @@
     (is (= d3 dr3))
     (is (= d4 dr4))
     (is (= d5 dr5))))
+
+(defn generate-diff
+  [o1 o2]
+  (let [triples (json->triples empty-store [o1])
+        props (filter (fn [[k v]] (or (number? v) (string? v))) o1)
+        st (store/assert-data empty-store triples)
+        id (ffirst (store/query st '[?id] (map (fn [[k v]] ['?id k v]) props)))
+        [additions retractions] (json-update->triples st id o2)]
+    [id additions retractions]))
+
+(deftest test-updates
+  (let [[id1 add1 ret1] (generate-diff {:a 1} {:a 2})
+        [id2 add2 ret2] (generate-diff {:a 1 :b "foo"} {:a 2 :b "foo"})
+        [id3 add3 ret3] (generate-diff {:a 1 :b "foo"} {:a 1 :b "bar"})
+        [id4 add4 ret4] (generate-diff {:a 1 :b "foo" :c [10 11 12] :d {:x "a" :y "b"} :e [{:m 1} {:m 2}]}
+                                       {:b "bar", :c [10 10 12], :e [{:m 1} {:m 2}], :bx "xxx"})]
+    (is (= add1 [[id1 :a 2]]))
+    (is (= ret1 [[id1 :a 1]]))
+    (is (= add2 [[id2 :a 2]]))
+    (is (= ret2 [[id2 :a 1]]))
+    (is (= add3 [[id3 :b "bar"]]))
+    (is (= ret3 [[id3 :b "foo"]]))
+    (let [adds (filter #(#{:b :c :bx} (second %)) add4)
+          dels (filter #(#{:a :b :c :d} (second %)) ret4)
+          [[sid1 _ a1] [sid2 _ a2] :as ds] (filter (fn [[_ p _]] (#{:x :y} p)) ret4)]
+      (is (= 3 (count adds)))
+      (is (= 4 (count dels)))
+      (is (= sid1 sid2))
+      (is (= #{"a" "b"} #{a1 a2})))))
 
 #?(:cljs (t/run-tests))
