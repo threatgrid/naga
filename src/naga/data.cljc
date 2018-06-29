@@ -229,9 +229,17 @@
 
 (s/defn id->json :- {s/Keyword s/Any}
   "Uses an id node to load up a nested data structure from the graph"
-  [store :- StorageType
-   entity-id :- s/Any]
-  (pairs->json store (property-values store entity-id)))
+  ([store :- StorageType
+    entity-id :- s/Any]
+   (id->json store entity-id nil))
+  ([store :- StorageType
+    entity-id :- s/Any
+    exclusions :- #{s/Keyword}]
+   (let [prop-vals (property-values store entity-id)
+         pvs (if exclusions
+               (remove (comp exclusions first) prop-vals)
+               prop-vals)]
+     (pairs->json store prop-vals))))
 
 
 (s/defn ident->json :- {s/Keyword s/Any}
