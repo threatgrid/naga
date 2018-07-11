@@ -251,10 +251,13 @@
 
 (s/defn store->json :- [{s/Keyword s/Any}]
   "Pulls all top level JSON out of a store"
-  [store :- StorageType]
-  (->> (store/query store '[?e] '[[?e :naga/entity true] [?e :db/ident ?id]])
-       (map first)
-       (map (partial id->json store))))
+  ([store :- StorageType]
+   (store->json store nil))
+  ([store :- StorageType
+    exclusions :- (s/maybe #{s/Keyword})]
+   (->> (store/query store '[?e] '[[?e :naga/entity true] [?e :db/ident ?id]])
+        (map first)
+        (map #(id->json store % exclusions)))))
 
 (s/defn store->str :- s/Str
   "Reads a store into JSON strings"
