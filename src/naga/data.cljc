@@ -53,9 +53,10 @@
                       (let [{r :naga/rest :as lm} (listmap n)
                             [_ f] (get-naga-first lm)]
                         (recur (conj nl f) r))))]
-    (map
-     (fn [n] [node (store/container-property *current-storage* n) n])
-     node-list)))
+    (doall  ;; uses a dynamically bound value, so ensure that this is executed
+      (map
+       (fn [n] [node (store/container-property *current-storage* n) n])
+       node-list))))
 
 (defmulti value-triples
   "Converts a value into a list of triples.
@@ -218,20 +219,25 @@
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- StorageType
    prop-vals :- [[s/Keyword s/Any]]]
-  (dissoc
-   (->> prop-vals
-        (map (partial recurse-node store))
-        (into {}))
-   :db/id
-   :db/ident
-   :naga/entity))
+  (->> prop-vals
+       (remove (comp #{:db/id :db/ident :naga/entity} first))
+       (map (partial recurse-node store))
+       (into {})))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
   "Uses an id node to load up a nested data structure from the graph"
-  [store :- StorageType
-   entity-id :- s/Any]
-  (pairs->json store (property-values store entity-id)))
+  ([store :- StorageType
+    entity-id :- s/Any]
+   (id->json store entity-id nil))
+  ([store :- StorageType
+    entity-id :- s/Any
+    exclusions :- (s/maybe #{s/Keyword})]
+   (let [prop-vals (property-values store entity-id)
+         pvs (if (seq exclusions)
+               (remove (comp exclusions first) prop-vals)
+               prop-vals)]
+     (pairs->json store pvs))))
 
 
 (s/defn ident->json :- {s/Keyword s/Any}
@@ -246,10 +252,13 @@
 
 (s/defn store->json :- [{s/Keyword s/Any}]
   "Pulls all top level JSON out of a store"
-  [store :- StorageType]
-  (->> (store/query store '[?e] '[[?e :naga/entity true] [?e :db/ident ?id]])
-       (map first)
-       (map (partial id->json store))))
+  ([store :- StorageType]
+   (store->json store nil))
+  ([store :- StorageType
+    exclusions :- (s/maybe #{s/Keyword})]
+   (->> (store/query store '[?e] '[[?e :naga/entity true] [?e :db/ident ?id]])
+        (map first)
+        (map #(id->json store % exclusions)))))
 
 (s/defn store->str :- s/Str
   "Reads a store into JSON strings"
