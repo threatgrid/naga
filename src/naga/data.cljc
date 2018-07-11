@@ -53,9 +53,10 @@
                       (let [{r :naga/rest :as lm} (listmap n)
                             [_ f] (get-naga-first lm)]
                         (recur (conj nl f) r))))]
-    (map
-     (fn [n] [node (store/container-property *current-storage* n) n])
-     node-list)))
+    (doall  ;; uses a dynamically bound value, so ensure that this is executed
+      (map
+       (fn [n] [node (store/container-property *current-storage* n) n])
+       node-list))))
 
 (defmulti value-triples
   "Converts a value into a list of triples.
