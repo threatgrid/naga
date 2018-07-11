@@ -218,13 +218,10 @@
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   [store :- StorageType
    prop-vals :- [[s/Keyword s/Any]]]
-  (dissoc
-   (->> prop-vals
-        (map (partial recurse-node store))
-        (into {}))
-   :db/id
-   :db/ident
-   :naga/entity))
+  (->> prop-vals
+       (remove (comp #{:db/id :db/ident :naga/entity} first))
+       (map (partial recurse-node store))
+       (into {})))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
@@ -234,12 +231,12 @@
    (id->json store entity-id nil))
   ([store :- StorageType
     entity-id :- s/Any
-    exclusions :- #{s/Keyword}]
+    exclusions :- (s/maybe #{s/Keyword})]
    (let [prop-vals (property-values store entity-id)
-         pvs (if exclusions
+         pvs (if (seq exclusions)
                (remove (comp exclusions first) prop-vals)
                prop-vals)]
-     (pairs->json store prop-vals))))
+     (pairs->json store pvs))))
 
 
 (s/defn ident->json :- {s/Keyword s/Any}
