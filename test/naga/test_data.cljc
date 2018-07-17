@@ -1,10 +1,12 @@
 (ns naga.test-data
-  (:require [naga.data :refer [string->triples json->triples store->json json-update->triples]]
+  (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples]]
             [naga.storage.test :as st]
-            [naga.store :as store]
+            [naga.store :as store :refer [query assert-data retract-data]]
             [asami.core :refer [empty-store]]
+            [asami.multi-graph]
             #?(:clj  [clojure.test :as t :refer [deftest is]]
-               :cljs [clojure.test :as t :refer-macros [deftest is]])))
+               :cljs [clojure.test :as t :refer-macros [deftest is]]))
+  #?(:clj (:import [java.time ZonedDateTime])))
 
 (deftest test-encode-from-string
   (let [m1 (string->triples (st/new-store)
@@ -172,5 +174,54 @@
       (is (= 4 (count dels)))
       (is (= sid1 sid2))
       (is (= #{"a" "b"} #{a1 a2})))))
+
+(defn get-node-ref
+  [store id]
+  (ffirst (query store '[?n] [['?n :id id]])))
+
+
+#?(:clj
+(deftest test-multi-update
+  (let [graph
+        #asami.multi_graph.MultiGraph{:spo #:mem{:node-27367
+                                                 {:db/ident #:mem{:node-27367 1},
+                                                  :naga/entity {true 1},
+                                                  :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" 1},
+                                                  :type {"sha256" 1},
+                                                  :id {"4f390192" 1}}},
+                                      :pos {:db/ident
+                                            #:mem{:node-27367 #:mem{:node-27367 1}},
+                                            :naga/entity {true #:mem{:node-27367 1}},
+                                            :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" #:mem{:node-27367 1}},
+                                            :type {"sha256" #:mem{:node-27367 1}},
+                                            :id {"4f390192" #:mem{:node-27367 1}}},
+                                      :osp {:mem/node-27367 #:mem{:node-27367 #:db{:ident 1}},
+                                            true #:mem{:node-27367 #:naga{:entity 1}},
+                                            "01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9"
+                                            #:mem{:node-27367 {:value 1}},
+                                            "sha256" #:mem{:node-27367 {:type 1}},
+                                            "4f390192" #:mem{:node-27367 {:id 1}}}}
+        store (asami.core.MemoryStore. nil graph)
+        id "verdict:AMP File Reputation:4f390192"
+        m {:type "verdict",
+           :disposition 2,
+           :observable {:value "01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9",
+                        :type "sha256"},
+           :disposition_name "Malicious",
+           :valid_time {:start_time (ZonedDateTime/parse "2017-12-05T12:45:32.192Z"),
+                        :end_time (ZonedDateTime/parse "2525-01-01T00:00Z")},
+           :module-name "AMP File Reputation",
+           :id "verdict:AMP File Reputation:4f390192"}
+        new-store (if-let [n (get-node-ref store id)]
+                    (let [[assertions retractions] (json-update->triples store n m)
+                          assert-keys (set (map (fn [[a b c]] [a b]) assertions))
+                          retract-existing (filter (fn [[a b c]] (assert-keys [a b])) retractions)]
+                      (-> store
+                          (retract-data retract-existing)
+                          (assert-data assertions)))
+                    (let [assertions (ident-map->triples store (assoc m :id id))]
+                      (assert-data store assertions)))]
+    (is (= 4 (count (:spo (:graph new-store)))))))
+)
 
 #?(:cljs (t/run-tests))
