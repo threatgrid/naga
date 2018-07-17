@@ -1,4 +1,4 @@
-(defproject org.clojars.quoll/naga "0.2.7"
+(defproject org.clojars.quoll/naga "0.2.8"
   :description "Forward Chaining Rule Engine"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
