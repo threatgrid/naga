@@ -168,10 +168,12 @@
 
 
 (s/defn property-values :- [[s/Keyword s/Any]]
-  "Return all the property/value pairs for a given entity in the store."
+  "Return all the property/value pairs for a given entity in the store.
+   Skips non-keyword properties, as these are not created by naga.data"
   [store :- StorageType
    entity :- s/Any]
-  (store/resolve-pattern store [entity '?p '?o]))
+  (->> (store/resolve-pattern store [entity '?p '?o])
+       (filter (comp keyword? first))))
 
 
 (s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
