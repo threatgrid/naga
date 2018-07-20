@@ -139,12 +139,16 @@
         dr4 (round-trip d4)
 
         d5 #{{:prop "val" :arr [{:a 1} {:a 2} ["nested"]]}}
-        dr5 (round-trip d5)]
+        dr5 (round-trip d5)
+
+        d6 #{{:prop "val" :arr [{:a 1} {:a 2} ["nested"]] :nested {}}}
+        dr6 (round-trip d6)]
     (is (= d1 dr1))
     (is (= d2 dr2))
     (is (= d3 dr3))
     (is (= d4 dr4))
-    (is (= d5 dr5))))
+    (is (= d5 dr5))
+    (is (= d6 dr6))))
 
 (defn generate-diff
   [o1 o2]

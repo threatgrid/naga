@@ -184,7 +184,7 @@
    v :- s/Any]
   (if (and (not (#{:db/ident :db/id} prop)) (store/node-type? store prop v))
     (let [data (property-values store v)]
-      (seq data))))
+      data)))
 
 
 (declare pairs->json recurse-node)
