@@ -88,6 +88,7 @@
 
 (defmethod value-triples List                        [v] (value-triples-list v))
 #?(:cljs (defmethod value-triples EmptyList          [v] (value-triples-list v)))
+#?(:cljs (defmethod value-triples LazySeq            [v] (value-triples-list v)))
 #?(:cljs (defmethod value-triples PersistentVector   [v] (value-triples-list v)))
 
 #?(:clj  (defmethod value-triples Map                [v] (map->triples v)))
@@ -184,7 +185,7 @@
    v :- s/Any]
   (if (and (not (#{:db/ident :db/id} prop)) (store/node-type? store prop v))
     (let [data (property-values store v)]
-      (seq data))))
+      data)))
 
 
 (declare pairs->json recurse-node)
