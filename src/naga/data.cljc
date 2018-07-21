@@ -88,6 +88,7 @@
 
 (defmethod value-triples List                        [v] (value-triples-list v))
 #?(:cljs (defmethod value-triples EmptyList          [v] (value-triples-list v)))
+#?(:cljs (defmethod value-triples LazySeq            [v] (value-triples-list v)))
 #?(:cljs (defmethod value-triples PersistentVector   [v] (value-triples-list v)))
 
 #?(:clj  (defmethod value-triples Map                [v] (map->triples v)))
