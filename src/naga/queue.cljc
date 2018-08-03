@@ -30,6 +30,8 @@ of less salient elements."
             (cons e
                   (drop (count preamble) s)))))
 
+(declare ->SalienceQueue)
+
 (defrecord SalienceQueue
   [q ;; :- [s/Any]
    h ;; :- #{s/Any}
