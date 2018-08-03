@@ -69,6 +69,9 @@ parent(A, F) :- father(A, F).
     (is (= (sequence clean test-rules)
            (sequence clean rules)))))
 
+(deftest parse-program-with-contains
+  (read-str "p(A, B) :- naga:contains(A, B)."))
+
 (deftest emit-program
   (let [[r1 r2 r3 r4 r5 r6] (map rule->str test-rules)
         rn (rule->str (r "a-name" [?a :foo ?b] :- [?a :bar ?b]) true)]

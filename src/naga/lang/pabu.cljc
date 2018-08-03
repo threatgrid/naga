@@ -36,13 +36,21 @@
   [raw]
   (first (triplets raw)))
 
+(def property-namespaces
+  "Set of namespaces that refer to data properties and never to functions"
+  #{"naga" "rdf" "rdfs" "owl"})
+
+(s/defn not-data-property?
+  [k]
+  (not (property-namespaces (namespace k))))
+
 (defn structure
   "Converts the AST for a structure into either a seq of triplets or predicates.
    Types are intentionally loose, since it's either a pair or a list."
   [ast-data]
   (if (vector? ast-data)
     (let [[p args] ast-data]
-      (if-let [f (and (keyword? p) (u/get-fn-reference p))]
+      (if-let [f (and (keyword? p) (not-data-property? p) (u/get-fn-reference p))]
         [(with-meta (cons f args) (meta args))]
         (triplets ast-data)))
     ;; a filter predicate. Wrap in extra vector for syntax purposes
