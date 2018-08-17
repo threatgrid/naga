@@ -58,14 +58,7 @@
        (fn [n] [node (store/container-property *current-storage* n) n])
        node-list))))
 
-(defmulti value-triples
-  "Converts a value into a list of triples.
-   Return the entity ID of the data coupled with the sequence of triples.
-   NOTE: This may need to be dispatched to storage.
-         e.g. Datomic could use properties to determine how to encode data."
-  type)
-
-(declare map->triples)
+(declare value-triples map->triples)
 
 (s/defn list-triples
   "Creates the triples for a list"
@@ -86,19 +79,18 @@
       [node (concat triples (containership-triples node triples))]
       raw-result)))
 
-(defmethod value-triples List                        [v] (value-triples-list v))
-#?(:cljs (defmethod value-triples EmptyList          [v] (value-triples-list v)))
-#?(:cljs (defmethod value-triples LazySeq            [v] (value-triples-list v)))
-#?(:cljs (defmethod value-triples PersistentVector   [v] (value-triples-list v)))
-
-#?(:clj  (defmethod value-triples Map                [v] (map->triples v)))
-#?(:cljs (defmethod value-triples PersistentArrayMap [v] (map->triples v)))
-#?(:cljs (defmethod value-triples PersistentHashMap  [v] (map->triples v)))
-
-(defmethod value-triples nil                         [v] nil)
-
-(defmethod value-triples :default                    [v] [v nil])
-
+(s/defn value-triples
+  "Converts a value into a list of triples.
+   Return the entity ID of the data coupled with the sequence of triples.
+   NOTE: This may need to be dispatched to storage.
+         e.g. Datomic could use properties to determine how to encode data."
+  [v]
+  (cond
+    (sequential? v) (value-triples-list v)
+    (set? v) (value-triples-list v)
+    (map? v) (map->triples v)
+    (nil? v) nil
+    :default [v nil]))
 
 (s/defn property-vals :- [Triple]
   "Takes a property-value pair associated with an entity,
