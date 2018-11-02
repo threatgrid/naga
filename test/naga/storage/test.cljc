@@ -3,6 +3,8 @@
             #?(:clj  [schema.core :as s]
                :cljs [schema.core :as s :include-macros true])))
 
+(declare ->TestStore)
+
 (s/defrecord TestStore [data n]
   Storage
   (start-tx [store] store)

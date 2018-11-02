@@ -58,14 +58,7 @@
        (fn [n] [node (store/container-property *current-storage* n) n])
        node-list))))
 
-(defmulti value-triples
-  "Converts a value into a list of triples.
-   Return the entity ID of the data coupled with the sequence of triples.
-   NOTE: This may need to be dispatched to storage.
-         e.g. Datomic could use properties to determine how to encode data."
-  type)
-
-(declare map->triples)
+(declare value-triples map->triples)
 
 (s/defn list-triples
   "Creates the triples for a list"
@@ -86,19 +79,18 @@
       [node (concat triples (containership-triples node triples))]
       raw-result)))
 
-(defmethod value-triples List                        [v] (value-triples-list v))
-#?(:cljs (defmethod value-triples EmptyList          [v] (value-triples-list v)))
-#?(:cljs (defmethod value-triples LazySeq            [v] (value-triples-list v)))
-#?(:cljs (defmethod value-triples PersistentVector   [v] (value-triples-list v)))
-
-#?(:clj  (defmethod value-triples Map                [v] (map->triples v)))
-#?(:cljs (defmethod value-triples PersistentArrayMap [v] (map->triples v)))
-#?(:cljs (defmethod value-triples PersistentHashMap  [v] (map->triples v)))
-
-(defmethod value-triples nil                         [v] nil)
-
-(defmethod value-triples :default                    [v] [v nil])
-
+(s/defn value-triples
+  "Converts a value into a list of triples.
+   Return the entity ID of the data coupled with the sequence of triples.
+   NOTE: This may need to be dispatched to storage.
+         e.g. Datomic could use properties to determine how to encode data."
+  [v]
+  (cond
+    (sequential? v) (value-triples-list v)
+    (set? v) (value-triples-list v)
+    (map? v) (map->triples v)
+    (nil? v) nil
+    :default [v nil]))
 
 (s/defn property-vals :- [Triple]
   "Takes a property-value pair associated with an entity,
@@ -194,38 +186,47 @@
   "Takes property/value pairs and if they represent a list node, returns the list.
    else, nil."
   [store :- StorageType
+   seen :- #{s/Any}
    pairs :- [[s/Keyword s/Any]]]
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
     (when-let [first-prop-elt (get-naga-first st)]
       (let [remaining (:naga/rest st)
-            [_ first-elt] (recurse-node store first-prop-elt)]
+            [_ first-elt] (recurse-node store seen first-prop-elt)]
         (assert first-elt)
         ;; recursively build the list
         (if remaining
-          (cons first-elt (build-list store (property-values store remaining)))
+          (cons first-elt (build-list store seen (property-values store remaining)))
           (list first-elt))))))
 
 
 (s/defn recurse-node :- s/Any
-  "Determines if the val of a map entry is a node to be recursed on, and loads if necessary"
+  "Determines if the val of a map entry is a node to be recursed on, and loads if necessary.
+  If referring directly to a top level node, then short circuit and return the ID"
   [store :- StorageType
+   seen :- #{s/Keyword}
    [prop v :as prop-val] :- [s/Keyword s/Any]]
   (if-let [pairs (check-structure store prop v)]
-    [prop (or (build-list store pairs)
-              (pairs->json store pairs))]
+    (if (some #(= :naga/entity (first %)) pairs)
+      [prop (some (fn [[k v]] (if (= :id k) v)) pairs)]
+      [prop (or (build-list store seen pairs)
+                (pairs->json store pairs (conj seen v)))])
     prop-val))
 
 
 (s/defn pairs->json :- {s/Keyword s/Any}
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
-  [store :- StorageType
-   prop-vals :- [[s/Keyword s/Any]]]
-  (->> prop-vals
-       (remove (comp #{:db/id :db/ident :naga/entity} first))
-       (map (partial recurse-node store))
-       (into {})))
+  ([store :- StorageType
+    prop-vals :- [[s/Keyword s/Any]]] (pairs->json store prop-vals #{}))
+  ([store :- StorageType
+    prop-vals :- [[s/Keyword s/Any]]
+    seen :- #{s/Keyword}]
+   (->> prop-vals
+        (remove (comp #{:db/id :db/ident :naga/entity} first))
+        (remove (comp seen second))
+        (map (partial recurse-node store seen))
+        (into {}))))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
