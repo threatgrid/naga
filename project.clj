@@ -11,7 +11,7 @@
                  [the/parsatron "0.0.7"]
                  [cheshire "5.8.0"]
                  [org.clojars.quoll/naga-store "0.2.1"]
-                 [org.clojars.quoll/asami "0.2.13"]
+                 [org.clojars.quoll/asami "0.2.14"]
                  ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
                  [com.datomic/datomic-free "0.9.5697" :exclusions [com.google.guava/guava]]
                  [org.postgresql/postgresql "9.3-1102-jdbc41"]]
