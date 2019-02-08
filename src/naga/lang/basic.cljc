@@ -158,7 +158,7 @@
   [l]
   (-> #{}
       (into (keep (comp :vars meta) l))
-      (into (ss/vars l))))
+      (into (filter ss/vartest? l))))
 
 (defparser arg-list []
   (let->> [f (elt)

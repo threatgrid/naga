@@ -83,4 +83,17 @@ parent(A, F) :- father(A, F).
     (is (= r6 "parent(A, F) :- father(A, F)."))
     (is (= rn "foo(A, B) :- bar(A, B).    /* a-name */"))))
 
+(def suggestion-rule
+  "module(Odns, “OpenDNS”),\nblock(Odns, O),\ntype(Odns, “suggestion”)\n:-\ntype(M, “module”), record(M, “opendns-investigate.module/OpenDNSInvestigateModule”),\ntype(V, “verdict”), disposition_name(V, “Malicious”),\nobservable(V, O), type(O, “domain”),\nmodule-name(V, Mn), Mn != “OpenDNS” .")
+
+(deftest parse-program
+  (let [{:keys [axioms rules]} (read-str suggestion-rule)
+        [{:keys [head body]}] rules
+        pred (last body)]
+    (is (= 1 (count rules)))
+    (is (= 3 (count head)))
+    (is (= 8 (count body)))
+    (is (list? (first pred)))
+    (is (= [(list not= '?mn "OpenDNS")] pred))))
+
 #?(:cljs (t/run-tests))
