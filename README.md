@@ -74,6 +74,8 @@ Here is a rule that will infer an `uncle` relationship from existing data:
   uncle(Nibling,Uncle) :- parent(Nibling,Parent), brother(Parent,Uncle).
 ```
 
+Note: *Nibling* is a word to describe children of your sibling, declared by linguist [Samuel E. Martin](https://en.wiktionary.org/wiki/nibling) in 1951. Maybe one of these days will make it into Merriam Webster.
+
 In the above statement, *Nibling*, *Parent*, and *Uncle* are all variables. Once variables
 have been found to match the predicates after the **:-** symbol, then they can be substituted
 into the `uncle` predicate in the head of the rule.
