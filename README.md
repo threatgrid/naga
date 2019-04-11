@@ -109,21 +109,22 @@ For the moment, the only configured implementation is an in-memory store.
 
 ## In Memory Database
 
-Naga implements its own graph database. It has a relatively capable query planner, and internal
-operations for inner joins and projection. More operations are in the works.
+Naga is designed to operate against any graph database. The interface for this is the `Storage`
+protocol described above, and is defined in the project [naga-store](https://github.com/threatgrid/naga-store).
+Implementations of this protocol exist for [Datomic](https://www.datomic.com/), and a local
+in-memory graph database called [Asami](https://github.com/threatgrid/asami). Asami is used
+by default. Asami has a relatively capable query planner, and internal operations for inner joins and projection.
+More operations are in the works.
 
 Queries may be executed directly against the database, but for the moment they require API access.
-This uses the same `Storage` API described above.
 
 We also have some partial implementations for on-disk storage, which we hope to use.
 These are based on the same architecture as the indexes in the
 [Mulgara Database](http://github.com/quoll/mulgara).
 
-This may eventually be split out into its own project.
-
 ## License
 
-Copyright © 2016-2017 Cisco Systems
+Copyright © 2016-2019 Cisco Systems
 
 Copyright © 2011-2016 Paula Gearon
 
