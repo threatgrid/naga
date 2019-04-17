@@ -165,6 +165,11 @@
     (is (= 7 (count data)))
     (is (= 2 (count node)))))
 
+(def gen-head '([?v221 :type "Suggestion"] [?v221 :label "do thing"] [?v221 :value ?a] [?v221 :related_to ?v222] [?v222 :obj ?v223] [?v222 :data "x"])
+
+(deftest generating-rules
+  ())
+
 (defn short-rule
   [{:keys [head body]}]
   (concat head [:-] body))

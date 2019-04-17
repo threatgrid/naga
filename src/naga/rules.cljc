@@ -37,6 +37,40 @@
         unbound? (set/difference head-vars body-vars)]
     (map (fn [p] (map #(if (unbound? %) (fresh-var %) %) p)) head)))
 
+(defn var-for [m fv]
+  (if-let [v (if (fresh-var? fv) (get m fv) fv)]
+    [m v]
+    (let [v (->> (gensym "?v") str symbol)]
+      [(assoc m fv v) v])))
+
+(defn regen-rewrite
+  "Rewrites rules that are generating new entities to avoid them in future iterations.
+   This requires the generated entities to be subtracted from the patterns in the rule
+   body."
+  [head body]
+  (letfn [(collect-patterns [p]
+            (loop [incvars #{}
+                   patterns (set (filter (comp fresh-var? first) head))]
+              (let [new-vars (into incvars (mapcat vars patterns))
+                    new-patterns (set (filter #(and (not (patterns %))
+                                                    (some new-vars (vars %)))
+                                              head))]
+                (if (seq new-patterns)
+                  (recur new-vars (into patterns new-patterns))
+                  patterns))))
+          (var-rewrite [[varmap acc] pattern]
+            (let [varmapper (fn [[f->v ac] e]
+                              (let [[f->v' v] (var-for f->v e)]
+                                [f->v' (conj ac v)]))
+                  [varmap' pattern'] (reduce varmapper [varmap []] pattern)]
+              [varmap' (conj acc pattern')]))]
+    (let [patterns-filter (collect-patterns head)
+          [varmap subtractions] (->> (filter patterns-filter head) ;; uses the set to select from the original
+                                     (reduce var-rewrite [{} []]))]
+      (if (seq varmap)
+        (concat body (apply list 'not subtractions))
+        body))))
+
 (s/defn rule :- Rule
   "Creates a new rule"
   ([head body] (rule head body (gen-rule-name)))
@@ -126,7 +160,8 @@
   (let [name-bodies (u/mapmap :name :body rules)
         triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
         deps (fn [{:keys [head body name]}]
-               (st/new-rule head body name (mapcat triggers head)))]
+               (let [body' (regen-rewrite head body)]
+                 (st/new-rule head body' name (mapcat triggers head))))]
     {:rules (u/mapmap :name identity (map deps rules))
      :axioms axioms}))
 
