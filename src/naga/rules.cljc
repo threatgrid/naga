@@ -37,11 +37,12 @@
         unbound? (set/difference head-vars body-vars)]
     (map (fn [p] (map #(if (unbound? %) (fresh-var %) %) p)) head)))
 
-(defn var-for [m fv]
-  (if-let [v (if (fresh-var? fv) (get m fv) fv)]
-    [m v]
-    (let [v (->> (gensym "?v") str symbol)]
-      [(assoc m fv v) v])))
+(def var-for
+  (memoize
+   (fn [fv]
+     (if (fresh-var? fv)
+       (->> (gensym "?v") str symbol)
+       fv))))
 
 (defn regen-rewrite
   "Rewrites rules that are generating new entities to avoid them in future iterations.
@@ -49,6 +50,8 @@
    body."
   [head body]
   (letfn [(collect-patterns [p]
+            ;; find all head patterns that include fresh vars, and which are connected
+            ;; to patterns that are included via fresh vars
             (loop [incvars #{}
                    patterns (set (filter (comp fresh-var? first) head))]
               (let [new-vars (into incvars (mapcat vars patterns))
@@ -58,16 +61,12 @@
                 (if (seq new-patterns)
                   (recur new-vars (into patterns new-patterns))
                   patterns))))
-          (var-rewrite [[varmap acc] pattern]
-            (let [varmapper (fn [[f->v ac] e]
-                              (let [[f->v' v] (var-for f->v e)]
-                                [f->v' (conj ac v)]))
-                  [varmap' pattern'] (reduce varmapper [varmap []] pattern)]
-              [varmap' (conj acc pattern')]))]
+          (var-rewrite [pattern]
+            (mapv var-for pattern))]
     (let [patterns-filter (collect-patterns head)
-          [varmap subtractions] (->> (filter patterns-filter head) ;; uses the set to select from the original
-                                     (reduce var-rewrite [{} []]))]
-      (if (seq varmap)
+          subtractions (->> (filter patterns-filter head) ;; uses the set to select from the original
+                            (map var-rewrite))]
+      (if (seq patterns-filter)
         (concat body (apply list 'not subtractions))
         body))))
 
