@@ -1,18 +1,18 @@
 (ns naga.test-rules
   (:require
             [naga.schema.structs :as structs :refer [new-rule]]
-            #?(:clj  [naga.rules :as r :refer [r]]
-               :cljs [naga.rules :as r :refer-macros [r]])
+            [naga.rules :as r :refer [r regen-rewrite] :include-macros true]
             [naga.engine :as e]
             [naga.store :as store]
             [naga.store-registry :as store-registry]
             [naga.storage.test :as stest]
             [asami.core :as mem]
-            #?(:clj  [schema.test :as st :refer [deftest]]
-               :cljs [schema.test :as st :refer-macros [deftest]])
-            #?(:clj  [clojure.test :as t :refer [is]]
-               :cljs [clojure.test :as t :refer-macros [is]])
-            [clojure.pprint :refer [pprint]]))
+            [schema.test :as st :refer [deftest] :include-macros true]
+            [clojure.test :as t :refer [is] :include-macros true]
+            [clojure.pprint :refer [pprint]])
+  #?(:clj
+     (:import
+      [java.util.concurrent.atomic AtomicInteger])))
 
 (t/use-fixtures :once st/validate-schemas)
 
@@ -165,10 +165,50 @@
     (is (= 7 (count data)))
     (is (= 2 (count node)))))
 
-(def gen-head '([?v221 :type "Suggestion"] [?v221 :label "do thing"] [?v221 :value ?a] [?v221 :related_to ?v222] [?v222 :obj ?v223] [?v222 :data "x"])
+(def gen-head '([?v221 :type "Suggestion"] [?v221 :label "do thing"] [?v221 :value ?a] [?v221 :related_to ?v222] [?v222 :obj ?v223] [?v222 :data "x"]))
+
+#?(:clj
+   (defn fresh-gen-wrapper [thunk]
+     (let [id-field (.getDeclaredField clojure.lang.RT "id")
+           _ (.setAccessible id-field true)
+           id (.get id-field AtomicInteger)
+           saved (.getAndSet id 1)
+           result (thunk)]
+       (.getAndSet id saved)
+       result))
+
+   (defn fresh-gen-wrapper [thunk]
+     ;; sets up the counter if gensym has not been used before
+     (when (nil? gensym_counter) (set! gensym_counter (atom 0)))
+     (let [saved (loop [old-val @gensym_counter]
+                   (if (compare-and-set! gensym_counter old-val 0)
+                     old-val
+                     (recur @gensym_counter)))
+           result (thunk)]
+       (reset! gensym_counter saved)
+       result)))
+
+(defmacro with-fresh-gen [& body]
+  `(fresh-gen-wrapper (fn [] ~@body)))
+
+(deftest test-rewrite
+  (with-fresh-gen
+    (let [r (regen-rewrite '[[?x :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
+      (is (= r '[[?x :a ?a] [?a :b ?b]])))
+
+    (let [r (regen-rewrite '[[%m :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__1 :b ?b])])))
+
+    (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a]] '[[?x :a ?a] [?a :b ?b]])]
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__2 :b ?b] [?gen__2 :r ?a])])))
+
+    (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a] [%n :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__3 :b ?b] [?gen__3 :r ?a] [?gen__4 :b ?b])])))
+
+    ))
 
 (deftest generating-rules
-  ())
+  )
 
 (defn short-rule
   [{:keys [head body]}]
