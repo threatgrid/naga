@@ -177,6 +177,7 @@
        (.getAndSet id saved)
        result))
 
+   :cljs
    (defn fresh-gen-wrapper [thunk]
      ;; sets up the counter if gensym has not been used before
      (when (nil? gensym_counter) (set! gensym_counter (atom 0)))
@@ -208,7 +209,21 @@
     ))
 
 (deftest generating-rules
-  )
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [rx [(r "gen-prop" [?z :prop ?y] :- [?x :foo ?y] [?x :p2 :a])
+            (r "gen-prop2" [?x :p2 :a] :- [?x :prop ?y])]
+        ax [[:data :foo :bar][:data :p2 :a]]
+        program (r/create-program rx ax)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])
+        data' (into #{} (remove #(= :data (first %)) data))
+        new-id (ffirst data')]
+    (println data)
+    (is (= 6 (count data)))
+    (is (= 4 (count data')))
+    (is (apply = (map first data')))
+    (is (contains? data' [new-id :prop :bar]))
+    (is (contains? data' [new-id :p2 :a]))))
 
 (defn short-rule
   [{:keys [head body]}]
