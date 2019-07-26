@@ -222,11 +222,13 @@
   ([store :- StorageType
     prop-vals :- [[s/Keyword s/Any]]
     seen :- #{s/Keyword}]
-   (->> prop-vals
-        (remove (comp #{:db/id :db/ident :naga/entity} first))
-        (remove (comp seen second))
-        (map (partial recurse-node store seen))
-        (into {}))))
+   (if (some (fn [[k _]] (= :naga/first k)) prop-vals)
+     (build-list store seen prop-vals)
+     (->> prop-vals
+          (remove (comp #{:db/id :db/ident :naga/entity} first))
+          (remove (comp seen second))
+          (map (partial recurse-node store seen))
+          (into {})))))
 
 
 (s/defn id->json :- {s/Keyword s/Any}
