@@ -1,4 +1,4 @@
-(defproject org.clojars.quoll/naga "0.2.24-SNAPSHOT"
+(defproject org.clojars.quoll/naga "0.2.24"
   :description "Forward Chaining Rule Engine"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
@@ -10,8 +10,8 @@
                  [org.clojure/core.cache "0.7.1"]
                  [the/parsatron "0.0.7"]
                  [cheshire "5.8.0"]
-                 [org.clojars.quoll/naga-store "0.3.1"]
-                 [org.clojars.quoll/asami "0.3.3"]
+                 [org.clojars.quoll/naga-store "0.3.2"]
+                 [org.clojars.quoll/asami "0.3.4"]
                  ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
                  [com.datomic/datomic-free "0.9.5697" :exclusions [com.google.guava/guava]]
                  [org.postgresql/postgresql "9.3-1102-jdbc41"]]

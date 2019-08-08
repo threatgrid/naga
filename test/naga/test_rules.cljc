@@ -198,13 +198,16 @@
       (is (= r '[[?x :a ?a] [?a :b ?b]])))
 
     (let [r (regen-rewrite '[[%m :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
-      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__1 :b ?b])])))
+      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__1 :b ?b])]))
+         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__18 :b ?b])]))))
 
     (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a]] '[[?x :a ?a] [?a :b ?b]])]
-      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__2 :b ?b] [?gen__2 :r ?a])])))
+      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__2 :b ?b] [?gen__2 :r ?a])]))
+         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__19 :b ?b] [?gen__19 :r ?a])]))))
 
     (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a] [%n :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
-      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__3 :b ?b] [?gen__3 :r ?a] [?gen__4 :b ?b])])))
+      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__3 :b ?b] [?gen__3 :r ?a] [?gen__4 :b ?b])]))
+         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__20 :b ?b] [?gen__20 :r ?a] [?gen__21 :b ?b])]))))
 
     ))
 
