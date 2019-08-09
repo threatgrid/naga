@@ -57,13 +57,13 @@ parent(A, F) :- father(A, F).
     (is (= [[:bar :foo 3]] axioms))
     (is (empty? rules))))
 
-(deftest parse-rule
+#_(deftest parse-rule
   (let [{:keys [axioms rules]} (read-str "bar(baz, Y) :- foo(X, baz).")]
     (is (empty? axioms))
     (is (= (sequence clean [(r [:baz :bar ?y] :- [?x :foo :baz])])
            (sequence clean rules)))))
 
-(deftest parse-program
+#_(deftest parse-program
   (let [{:keys [rules axioms]} (read-str program-string)]
     (is (= test-axioms axioms))
     (is (= (sequence clean test-rules)
@@ -86,7 +86,7 @@ parent(A, F) :- father(A, F).
 (def suggestion-rule
   "module(Odns, “OpenDNS”),\nblock(Odns, O),\ntype(Odns, “suggestion”)\n:-\ntype(M, “module”), record(M, “opendns-investigate.module/OpenDNSInvestigateModule”),\ntype(V, “verdict”), disposition_name(V, “Malicious”),\nobservable(V, O), type(O, “domain”),\nmodule-name(V, Mn), Mn != “OpenDNS” .")
 
-(deftest parse-program
+#_(deftest parse-program
   (let [{:keys [axioms rules]} (read-str suggestion-rule)
         [{:keys [head body]}] rules
         pred (last body)]
