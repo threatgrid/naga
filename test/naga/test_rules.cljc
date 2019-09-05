@@ -9,7 +9,8 @@
             [asami.core :as mem]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]
-            [clojure.pprint :refer [pprint]])
+            [clojure.pprint :refer [pprint]]
+            [qtest.core :refer [with-fresh-gen] :include-macros true])
   #?(:clj
      (:import
       [java.util.concurrent.atomic AtomicInteger])))
@@ -167,49 +168,19 @@
 
 (def gen-head '([?v221 :type "Suggestion"] [?v221 :label "do thing"] [?v221 :value ?a] [?v221 :related_to ?v222] [?v222 :obj ?v223] [?v222 :data "x"]))
 
-#?(:clj
-   (defn fresh-gen-wrapper [thunk]
-     (let [id-field (.getDeclaredField clojure.lang.RT "id")
-           _ (.setAccessible id-field true)
-           id (.get id-field AtomicInteger)
-           saved (.getAndSet id 1)
-           result (thunk)]
-       (.getAndSet id saved)
-       result))
-
-   :cljs
-   (defn fresh-gen-wrapper [thunk]
-     ;; sets up the counter if gensym has not been used before
-     (when (nil? gensym_counter) (set! gensym_counter (atom 0)))
-     (let [saved (loop [old-val @gensym_counter]
-                   (if (compare-and-set! gensym_counter old-val 0)
-                     old-val
-                     (recur @gensym_counter)))
-           result (thunk)]
-       (reset! gensym_counter saved)
-       result)))
-
-(defmacro with-fresh-gen [& body]
-  `(fresh-gen-wrapper (fn [] ~@body)))
-
 (deftest test-rewrite
   (with-fresh-gen
     (let [r (regen-rewrite '[[?x :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
       (is (= r '[[?x :a ?a] [?a :b ?b]])))
 
     (let [r (regen-rewrite '[[%m :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
-      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__1 :b ?b])]))
-         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__18 :b ?b])]))))
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__1 :b ?b])])))
 
     (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a]] '[[?x :a ?a] [?a :b ?b]])]
-      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__2 :b ?b] [?gen__2 :r ?a])]))
-         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__19 :b ?b] [?gen__19 :r ?a])]))))
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__2 :b ?b] [?gen__2 :r ?a])])))
 
     (let [r (regen-rewrite '[[%m :b ?b] [%m :r ?a] [%n :b ?b]] '[[?x :a ?a] [?a :b ?b]])]
-      #?(:clj (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__3 :b ?b] [?gen__3 :r ?a] [?gen__4 :b ?b])]))
-         :cljs (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__20 :b ?b] [?gen__20 :r ?a] [?gen__21 :b ?b])]))))
-
-    ))
+      (is (= r '[[?x :a ?a] [?a :b ?b] (not [?gen__3 :b ?b] [?gen__3 :r ?a] [?gen__4 :b ?b])])))))
 
 (deftest generating-rules
   (store-registry/register-storage! :memory mem/create-store)
@@ -221,7 +192,6 @@
         data (store/resolve-pattern store '[?e ?a ?v])
         data' (into #{} (remove #(= :data (first %)) data))
         new-id (ffirst data')]
-    (println data)
     (is (= 6 (count data)))
     (is (= 4 (count data')))
     (is (apply = (map first data')))
