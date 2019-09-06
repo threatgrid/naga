@@ -5,7 +5,7 @@
             [naga.engine :as e]
             [naga.store :as store]
             [naga.store-registry :as store-registry]
-            [naga.storage.test :as stest]
+            [helpers.storage :as stest]
             [asami.core :as mem]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]

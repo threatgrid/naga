@@ -1,4 +1,4 @@
-(ns naga.storage.test
+(ns helpers.storage
   (:require [naga.store :as store :refer [Storage]]
             #?(:clj  [schema.core :as s]
                :cljs [schema.core :as s :include-macros true])))

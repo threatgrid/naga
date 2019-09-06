@@ -1,6 +1,6 @@
 (ns naga.test-data
   (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples]]
-            [naga.storage.test :as st]
+            [helpers.storage :as st]
             [naga.store :as store :refer [query assert-data retract-data]]
             [asami.core :refer [empty-store]]
             [asami.multi-graph]
