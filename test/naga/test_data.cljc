@@ -153,7 +153,7 @@
     (is (= d5 dr5))
     (is (= d6 dr6))
     (is (= d7 dr7))))
-                                                                                                                                                                                   
+
 (defn generate-diff
   [o1 o2]
   (let [triples (json->triples empty-store [o1])
