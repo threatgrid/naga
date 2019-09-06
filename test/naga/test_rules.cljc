@@ -5,7 +5,7 @@
             [naga.engine :as e]
             [naga.store :as store]
             [naga.store-registry :as store-registry]
-            [helpers.storage :as stest]
+            [naga.storage.test-helper :as test-helper]
             [asami.core :as mem]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]
@@ -57,9 +57,9 @@
         r2 (new-rule '[[?a :parent ?b]] [ptn] "stub2" [["stub2" ptn]])
         p1 {:rules (e/initialize-rules {"stub1" r1}) :axioms []}
         p2 {:rules (e/initialize-rules {"stub2" r2}) :axioms []}]
-    (let [[_ name->count] (e/execute (:rules p1) stest/empty-store)]
+    (let [[_ name->count] (e/execute (:rules p1) test-helper/empty-store)]
       (is (= 1 (name->count "stub1"))))
-    (let [[_ name->count] (e/execute (:rules p2) stest/empty-store)]
+    (let [[_ name->count] (e/execute (:rules p2) test-helper/empty-store)]
       (is (= 4 (name->count "stub2"))))))
 
 (deftest run-family
