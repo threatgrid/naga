@@ -86,7 +86,7 @@ parent(A, F) :- father(A, F).
 (def suggestion-rule
   "module(Odns, “OpenDNS”),\nblock(Odns, O),\ntype(Odns, “suggestion”)\n:-\ntype(M, “module”), record(M, “opendns-investigate.module/OpenDNSInvestigateModule”),\ntype(V, “verdict”), disposition_name(V, “Malicious”),\nobservable(V, O), type(O, “domain”),\nmodule-name(V, Mn), Mn != “OpenDNS” .")
 
-(deftest parse-program
+(deftest parse-suggestion-rule-program
   (let [{:keys [axioms rules]} (read-str suggestion-rule)
         [{:keys [head body]}] rules
         pred (last body)]
