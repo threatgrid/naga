@@ -1,6 +1,6 @@
 (ns naga.test-data
   (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples]]
-            [naga.storage.test :as st]
+            [naga.storage.test-helper :as test-helper]
             [naga.store :as store :refer [query assert-data retract-data]]
             [asami.core :refer [empty-store]]
             [asami.multi-graph]
@@ -9,18 +9,18 @@
   #?(:clj (:import [java.time ZonedDateTime])))
 
 (deftest test-encode-from-string
-  (let [m1 (string->triples (st/new-store)
+  (let [m1 (string->triples (test-helper/new-store)
                             "[{\"prop\": \"val\"}]")
-        m2 (string->triples (st/new-store)
+        m2 (string->triples (test-helper/new-store)
                             "[{\"prop\": \"val\", \"p2\": 2}]")
-        m3 (string->triples (st/new-store)
+        m3 (string->triples (test-helper/new-store)
                             (str "[{\"prop\": \"val\","
                                  "  \"p2\": 22,"
                                  "  \"p3\": [42, 54]}]"))
-        m4 (string->triples (st/new-store)
+        m4 (string->triples (test-helper/new-store)
                             (str "[{\"prop\": \"val\"},"
                                  " {\"prop\": \"val2\"}]"))
-        m5 (string->triples (st/new-store)
+        m5 (string->triples (test-helper/new-store)
                             (str "[{\"prop\": \"val\","
                                  "  \"arr\": ["
                                  "    {\"a\": 1},"
@@ -68,15 +68,15 @@
             [:test/n2 :naga/contains :test/n7]] m5))))
 
 (deftest test-encode
-  (let [m1 (json->triples (st/new-store)
+  (let [m1 (json->triples (test-helper/new-store)
                           [{:prop "val"}])
-        m2 (json->triples (st/new-store)
+        m2 (json->triples (test-helper/new-store)
                           [{:prop "val", :p2 2}])
-        m3 (json->triples (st/new-store)
+        m3 (json->triples (test-helper/new-store)
                           [{:prop "val", :p2 22, :p3 [42 54]}])
-        m4 (json->triples (st/new-store)
+        m4 (json->triples (test-helper/new-store)
                           [{:prop "val"} {:prop "val2"}])
-        m5 (json->triples (st/new-store)
+        m5 (json->triples (test-helper/new-store)
                           [{:prop "val"
                             :arr [{:a 1} {:a 2} ["nested"]]}])]
     (is (= [[:test/n1 :db/ident :test/n1]
