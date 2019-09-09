@@ -1,13 +1,13 @@
 # Testing Naga
 
-Because Naga works in both Clojure and Clojurescript, you can run the tests for both platforms:
+Because Naga works in both Clojure and ClojureScript, you can run the tests for both platforms:
 
 ### Clojure
 ```
 lein test
 ```
 
-### Clojurescript
+### ClojureScript
 ```
 lein cljsbuild test
 ```
