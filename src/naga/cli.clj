@@ -2,7 +2,7 @@
       :author "Paula Gearon"}
     naga.cli
   (:require [clojure.tools.cli :refer [parse-opts]]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [clojure.java.io :as io]
             [naga.lang.pabu :as pabu]
             [naga.store-registry :as store-registry]
@@ -39,11 +39,11 @@
 
 (defn exit
   [status & messages]
-  (throw (ex-info (string/join messages) {:status status})))
+  (throw (ex-info (str/join messages) {:status status})))
 
 (defn usage
   [{summary :summary}]
-  (string/join
+  (str/join
     \newline
     ["Executes Naga on a program."
      ""
