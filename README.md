@@ -19,10 +19,10 @@ While Naga is still in development, the easiest way to run it is with the
 [Leiningen](http://leiningen.org) build tool.
 
 ```bash
-  lein run example_data/family2.lg
+  lein run example_data/family.lg
 ```
 
-This runs the program found in the `example_data/family2.lg` file. It loads the data specified in the file,
+This runs the program found in the `example_data/family.lg` file. It loads the data specified in the file,
 executes the rules, and finally prints the final results database, without the input data.
 
 ### Options
