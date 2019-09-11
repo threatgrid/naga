@@ -1,6 +1,6 @@
 (ns naga.lang.basic
   (:refer-clojure :exclude [char])
-  (:require [clojure.string :as str]
+  (:require [clojure.string :as string]
             #?(:clj [the.parsatron :refer [char token choice attempt either
                                            string many many1 >> let->>
                                            digit letter always never defparser
@@ -128,19 +128,19 @@
 (defn build-keyword
   "Creates a keyword from a parsed word token"
   [wrd]
-  (let [[kns kname :as w] (str/split wrd #":")
+  (let [[kns kname :as w] (string/split wrd #":")
         parts (count w)]
     ;; use cond without a default to return nil
     (cond (is-digit? (first wrd)) nil
           (= 2 parts) (cond (empty? kns) (keyword kname)
                             (seq kname) (keyword kns kname))
-          (= 1 parts) (if-not (str/ends-with? wrd ":")
+          (= 1 parts) (if-not (string/ends-with? wrd ":")
                         (keyword kns)))))
 
 ;; atomic values, like a predicate, are represented as a keyword
 (defparser kw []
   (let->> [r ns-word]
-    (let [wrd (str/join r)]
+    (let [wrd (string/join r)]
       (if-let [k (build-keyword wrd)]
         (always k)
         (never)))))
