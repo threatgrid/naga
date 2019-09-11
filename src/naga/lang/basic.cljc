@@ -98,24 +98,24 @@
 
 (defparser integer []
   (let->> [i (either digits (signed-digits))]
-    (always (atoi (str/join i)))))
+    (always (atoi (string/join i)))))
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
            f (>> (char \.) (many1 (digit)))]
-    (always (atof (apply str (str/join i) \. f)))))
+    (always (atof (apply str (string/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
   (let->> [s (many1 (between (char \') (char \') (many non-squote)))]
-    (always (str/join (flatten (interpose \' s))))))
+    (always (string/join (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
   (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
-    (always (str/join (flatten (interpose \" s))))))
+    (always (string/join (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
 
