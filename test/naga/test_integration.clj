@@ -24,7 +24,7 @@
   "INPUT DATA\nsibling(fred, barney).\nparent(fred, mary).\nsibling(mary, george).\ngender(george, male).\nowl:SymmetricProperty(sibling).\n\nNEW DATA\nuncle(fred, george).\nbrother(mary, george).\nsibling(george, mary).\nparent(barney, mary).\nuncle(barney, george).\nsibling(barney, fred).\n")
 
 (deftest test-basic-program
-  (let [[out err] (capture-output -main "example_data/family2.lg")]
+  (let [[out err] (capture-output -main "example_data/family.lg")]
     (is (= out family-out))
     (is (= err "")))
   (let [[out err] (capture-output -main "example_data/family-2nd-ord.lg")]
@@ -38,7 +38,7 @@
    {:id "mary", :sibling "george", :brother "george"}])
 
 (deftest test-json-flow
-  (let [[out err] (capture-output -main "--json example_data/in.json --out example_data/out.json example_data/family.lg")
+  (let [[out err] (capture-output -main "--json example_data/in.json --out example_data/out.json example_data/json-family.lg")
         json-result (j/parse-string (slurp "example_data/out.json") keyword)]
     (is (empty? out))
     (is (empty? err))
