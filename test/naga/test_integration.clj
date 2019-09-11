@@ -1,8 +1,8 @@
 (ns naga.test-integration
   (:require [clojure.test :refer :all]
-            [clojure.string :as s]
+            [clojure.string :as str]
             [naga.cli :refer :all]
-            [cheshire.core :as j])
+            [cheshire.core :as json])
   (:import [java.io StringWriter]))
 
 (defn capture-output
@@ -12,7 +12,7 @@
     (binding [*out* out-buffer
               *err* err-buffer]
       (let [a (if (= 1 (count args))
-                (remove empty? (s/split (first args) #"\s"))
+                (remove empty? (str/split (first args) #"\s"))
                 args)]
         (apply f a)
         [(.toString out-buffer) (.toString err-buffer)]))))
@@ -40,6 +40,7 @@
 (deftest test-json-flow
   (let [[out err] (capture-output -main "--json example_data/in.json --out example_data/out.json example_data/json-family.lg")
         json-result (j/parse-string (slurp "example_data/out.json") keyword)]
+
     (is (empty? out))
     (is (empty? err))
     (is (= (sort-by :id json-result) json-out))))

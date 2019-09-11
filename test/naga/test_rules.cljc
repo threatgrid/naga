@@ -1,6 +1,5 @@
 (ns naga.test-rules
-  (:require
-            [naga.schema.structs :as structs :refer [new-rule]]
+  (:require [naga.schema.structs :as structs :refer [new-rule]]
             [naga.rules :as r :refer [r regen-rewrite] :include-macros true]
             [naga.engine :as e]
             [naga.store :as store]

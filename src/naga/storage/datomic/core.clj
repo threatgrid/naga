@@ -12,7 +12,7 @@
             [cheshire.core :as j]
             [naga.schema.store-structs :as ss
                                  :refer [EPVPattern FilterPattern Pattern Results Value]]
-            [clojure.string :as str]
+            [clojure.string :as string]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [datomic.api :as d :refer [q]])
@@ -328,9 +328,9 @@
       (edn/read-string m)
       (catch Exception _ (build-uri uri nil)))
     (let [uri-str (str uri)]
-      (when (> 2 (count (str/split uri-str #"://")))
+      (when (> 2 (count (string/split uri-str #"://")))
         (throw (ex-info (str "Invalid Datomic URI: " uri-str) {:uri uri-str})))
-      (if (str/starts-with? uri-str "datomic:")
+      (if (string/starts-with? uri-str "datomic:")
         uri-str
         (str "datomic:" uri-str)))))
 
@@ -347,13 +347,13 @@
   "Guesses at the type of file provided"
   [file]
   (letfn [(ext [s]
-            (if-let [i (str/last-index-of s \.)]
+            (if-let [i (string/last-index-of s \.)]
               (subs s (inc i))))]
     ({"json" :json
       "js" :json
       "edn" :edn
       "type" :pairs
-      "pair" :pairs} (str/lower-case (ext (.getName file))))))
+      "pair" :pairs} (string/lower-case (ext (.getName file))))))
 
 (s/defn user-init-data
   "Generates initialization transaction data from user data"

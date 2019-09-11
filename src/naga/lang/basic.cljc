@@ -1,6 +1,6 @@
 (ns naga.lang.basic
   (:refer-clojure :exclude [char])
-  (:require [clojure.string :as str]
+  (:require [clojure.string :as string]
             #?(:clj [the.parsatron :refer [char token choice attempt either
                                            string many many1 >> let->>
                                            digit letter always never defparser
@@ -98,24 +98,24 @@
 
 (defparser integer []
   (let->> [i (either digits (signed-digits))]
-    (always (atoi (str/join i)))))
+    (always (atoi (string/join i)))))
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
            f (>> (char \.) (many1 (digit)))]
-    (always (atof (apply str (str/join i) \. f)))))
+    (always (atof (apply str (string/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
   (let->> [s (many1 (between (char \') (char \') (many non-squote)))]
-    (always (str/join (flatten (interpose \' s))))))
+    (always (string/join (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
   (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
-    (always (str/join (flatten (interpose \" s))))))
+    (always (string/join (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
 
@@ -128,19 +128,19 @@
 (defn build-keyword
   "Creates a keyword from a parsed word token"
   [wrd]
-  (let [[kns kname :as w] (str/split wrd #":")
+  (let [[kns kname :as w] (string/split wrd #":")
         parts (count w)]
     ;; use cond without a default to return nil
     (cond (is-digit? (first wrd)) nil
           (= 2 parts) (cond (empty? kns) (keyword kname)
                             (seq kname) (keyword kns kname))
-          (= 1 parts) (if-not (str/ends-with? wrd ":")
+          (= 1 parts) (if-not (string/ends-with? wrd ":")
                         (keyword kns)))))
 
 ;; atomic values, like a predicate, are represented as a keyword
 (defparser kw []
   (let->> [r ns-word]
-    (let [wrd (str/join r)]
+    (let [wrd (string/join r)]
       (if-let [k (build-keyword wrd)]
         (always k)
         (never)))))

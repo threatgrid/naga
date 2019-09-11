@@ -2,7 +2,7 @@
       :author "Paula Gearon"}
     naga.data
   (:require [schema.core :as s :refer [=>]]
-            [clojure.string :as str]
+            [clojure.string :as string]
             #?(:clj [clojure.java.io :as io])
             #?(:clj [cheshire.core :as j])
             [naga.store :as store :refer [StorageType]])
@@ -34,7 +34,7 @@
   [struct]
   (let [first-pair? (fn [[k v :as p]]
                      (and (= "naga" (namespace k))
-                          (str/starts-with? (name k) "first")
+                          (string/starts-with? (name k) "first")
                           p))]
     (some first-pair? struct)))
 
