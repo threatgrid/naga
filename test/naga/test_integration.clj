@@ -39,7 +39,7 @@
 
 (deftest test-json-flow
   (let [[out err] (capture-output -main "--json example_data/in.json --out example_data/out.json example_data/json-family.lg")
-        json-result (j/parse-string (slurp "example_data/out.json") keyword)]
+        json-result (json/parse-string (slurp "example_data/out.json") keyword)]
 
     (is (empty? out))
     (is (empty? err))
