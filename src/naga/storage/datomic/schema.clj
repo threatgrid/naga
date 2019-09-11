@@ -1,7 +1,7 @@
 (ns ^{:doc "Functions for generating a user schema for Datomic."
       :author "Paula Gearon"}
     naga.storage.datomic.schema
-  (:require [clojure.string :as s]
+  (:require [clojure.string :as string]
             [naga.util :as u])
   (:import [datomic Peer]
            [java.util Map List]))
@@ -58,8 +58,8 @@
 (defn pair-file-to-attributes
   "Generates data for new attribute definitions, based on a file of attribute/type pairs."
   [file-text]
-  (->> (s/split file-text #"\n")
-       (map #(s/split % #"\s+"))
+  (->> (string/split file-text #"\n")
+       (map #(string/split % #"\s+"))
        attribute-data))
 
 (defprotocol Dataschema
@@ -86,7 +86,7 @@
   (schema-from [n xfr])
   Object
   (typename [jdata]
-    (let [tn (s/lower-case (.getSimpleName (class jdata)))]
+    (let [tn (string/lower-case (.getSimpleName (class jdata)))]
       (special-cases tn tn)))
   (schema-from [data xfr]))
 
