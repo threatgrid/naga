@@ -19,10 +19,10 @@ While Naga is still in development, the easiest way to run it is with the
 [Leiningen](http://leiningen.org) build tool.
 
 ```bash
-  lein run pabu/family.lg
+  lein run example_data/family.lg
 ```
 
-This runs the program found in the `family.lg` file. It loads the data specified in the file,
+This runs the program found in the `example_data/family.lg` file. It loads the data specified in the file,
 executes the rules, and finally prints the final results database, without the input data.
 
 ### Options
@@ -96,7 +96,7 @@ Any element can be given a namespace by using a colon separator. Only 1 colon ma
 To see this in use, look in pabu/family-2nd-ord.lg, and try running it:
 
 ```bash
-  lein run pabu/family-2nd-ord.lg
+  lein run example_data/family-2nd-ord.lg
 ```
 
 ## APIs
