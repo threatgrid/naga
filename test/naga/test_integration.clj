@@ -1,8 +1,8 @@
 (ns naga.test-integration
   (:require [clojure.test :refer :all]
-            [clojure.string :as s]
+            [clojure.string :as str]
             [naga.cli :refer :all]
-            [cheshire.core :as j])
+            [cheshire.core :as json])
   (:import [java.io StringWriter]))
 
 (defn capture-output
@@ -12,7 +12,7 @@
     (binding [*out* out-buffer
               *err* err-buffer]
       (let [a (if (= 1 (count args))
-                (remove empty? (s/split (first args) #"\s"))
+                (remove empty? (str/split (first args) #"\s"))
                 args)]
         (apply f a)
         [(.toString out-buffer) (.toString err-buffer)]))))
@@ -24,10 +24,10 @@
   "INPUT DATA\nsibling(fred, barney).\nparent(fred, mary).\nsibling(mary, george).\ngender(george, male).\nowl:SymmetricProperty(sibling).\n\nNEW DATA\nuncle(fred, george).\nbrother(mary, george).\nsibling(george, mary).\nparent(barney, mary).\nuncle(barney, george).\nsibling(barney, fred).\n")
 
 (deftest test-basic-program
-  (let [[out err] (capture-output -main "pabu/family.lg")]
+  (let [[out err] (capture-output -main "example_data/family.lg")]
     (is (= out family-out))
     (is (= err "")))
-  (let [[out err] (capture-output -main "pabu/family-2nd-ord.lg")]
+  (let [[out err] (capture-output -main "example_data/family-2nd-ord.lg")]
     (is (= out family-2nd-out))
     (is (= err ""))))
 
@@ -38,8 +38,9 @@
    {:id "mary", :sibling "george", :brother "george"}])
 
 (deftest test-json-flow
-  (let [[out err] (capture-output -main "--json data/in.json --out data/out.json data/family.lg")
-        json-result (j/parse-string (slurp "data/out.json") keyword)]
+  (let [[out err] (capture-output -main "--json example_data/in.json --out example_data/out.json example_data/json-family.lg")
+        json-result (json/parse-string (slurp "example_data/out.json") keyword)]
+
     (is (empty? out))
     (is (empty? err))
     (is (= (sort-by :id json-result) json-out))))

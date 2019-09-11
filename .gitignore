@@ -10,4 +10,4 @@ pom.xml.asc
 .hgignore
 .hg/
 .eastwood
-data/out.json
+example_data/out.json

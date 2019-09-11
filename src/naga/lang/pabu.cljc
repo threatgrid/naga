@@ -6,7 +6,7 @@
             [naga.lang.parser :as parser]
             [naga.rules :as r]
             [naga.util :as u]
-            [clojure.string :as str]
+            [clojure.string :as string]
             #?(:clj [schema.core :as s]
                :cljs [schema.core :as s :include-macros true]))
   #?(:clj (:import [java.io InputStream]
@@ -115,7 +115,7 @@
 
 (defn ps
   [e]
-  (letfn [(pabu-var [e] (str (str/upper-case (second e)) (subs e 2)))]
+  (letfn [(pabu-var [e] (str (string/upper-case (second e)) (subs e 2)))]
     (cond
       (symbol? e) (let [n (name e)]
                     (if (= \? (first n)) (pabu-var n) n))
@@ -136,7 +136,7 @@
     (if (builtin-labels (first args))
       (let [[op l r] args]
         (str l " " op " " r))
-      (str "(" (str/join " " args) ")"))))
+      (str "(" (string/join " " args) ")"))))
 
 (s/defn pattern->string :- s/Str
   [p :- Pattern]
@@ -150,8 +150,8 @@
   "Creates a textual representation for the rule"
   ([rule :- Rule] (rule->str rule false))
   ([{:keys [head body name] :as rule} :- Rule, include-name? :- s/Bool]
-   (let [main (str (str/join ", " (map predicate->string head))
+   (let [main (str (string/join ", " (map predicate->string head))
                    " :- "
-                   (str/join ", " (map pattern->string body))
+                   (string/join ", " (map pattern->string body))
                    ".")]
      (if include-name? (str main "    /* " name " */") main))))

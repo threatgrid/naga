@@ -1,7 +1,7 @@
 (ns naga.lang.parser
   "Parser for Pabu, which is a Prolog-like syntax for Naga."
   (:refer-clojure :exclude [char])
-  (:require [clojure.string :as str]
+  (:require [clojure.string :as string]
             #?(:clj [the.parsatron :refer [defparser let->> >> always between many attempt char string run]]
                :cljs [the.parsatron :refer [always between many attempt char string run]
                                     :refer-macros [defparser let->> >>]])
@@ -73,7 +73,7 @@
 (defn clean-quotes
   "Convert smart quotes into standard ascii character 34"
   [s]
-  (str/replace s dblquote-pattern "\""))
+  (string/replace s dblquote-pattern "\""))
 
 (defn parse
   "Parse a string"
