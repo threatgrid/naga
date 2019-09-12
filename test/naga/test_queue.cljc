@@ -49,10 +49,10 @@
    {:id 6 :s 2 :data (atom 1)}])
 
 (defn- updater
-  "Updates the :data atom in the element with an increment and returns the element"
-  [e]
-  (update-in e [:data] swap! inc)
-  e)
+  "Updates the :data key in the atom with an increment and returns the atom"
+  [update-atom]
+  (update-in update-atom [:data] swap! inc)
+  update-atom)
 
 (defn- adder [queue e] (q/add queue updater e))
 

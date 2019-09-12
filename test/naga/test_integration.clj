@@ -44,4 +44,3 @@
     (is (empty? out))
     (is (empty? err))
     (is (= (sort-by :id json-result) json-out))))
-
