@@ -8,23 +8,20 @@
 (t/use-fixtures :once st/validate-schemas)
 
 (deftest adding-to-identity-queue-without-salience
-         (let [data (shuffle (range 10))
-               queue (reduce q/add (q/new-queue) data)]
-           (is (= data (q/drain queue)))
-           (let [data2 (concat data (shuffle (range 10)))
-                 queue (reduce q/add (q/new-queue) data2)]
-             (is (= data (q/drain queue))))))
+  (let [data (shuffle (range 10))
+       queue (reduce q/add (q/new-queue) data)]
+   (is (= data (q/drain queue)))
+   (let [data2 (concat data (shuffle (range 10)))
+         queue (reduce q/add (q/new-queue) data2)]
+     (is (= data (q/drain queue))))))
 
 (deftest adding-to-identity-queue-with-salience
-         (let [data (shuffle (range 10))
-               queue (reduce q/add (q/new-queue identity identity) data)]
-           (is (= (range 10) (q/drain queue)))
-           (let [data2 (concat data (shuffle (range 10)))
-                 queue (reduce q/add (q/new-queue identity identity) data2)]
-             (is (= (range 10) (q/drain queue))))))
-
-
-
+  (let [data (shuffle (range 10))
+       queue (reduce q/add (q/new-queue identity identity) data)]
+   (is (= (range 10) (q/drain queue)))
+   (let [data2 (concat data (shuffle (range 10)))
+         queue2 (reduce q/add (q/new-queue identity identity) data2)]
+     (is (= (range 10) (q/drain queue2))))))
 
 (def simple-test-data
   [{:id 1 :s 2}
