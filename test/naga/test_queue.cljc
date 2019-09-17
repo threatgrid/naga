@@ -7,8 +7,7 @@
 
 (t/use-fixtures :once st/validate-schemas)
 
-(deftest simple
-  "Test adding to an identity queue, without salience"
+(deftest adding-to-an-identity-queue-without-salienc
   (let [data (shuffle (range 10))
         queue (reduce q/add (q/new-queue) data)]
     (is (= data (q/drain queue)))
@@ -16,8 +15,7 @@
           queue (reduce q/add (q/new-queue) data2)]
       (is (= data (q/drain queue))))))
 
-(deftest salience
-  "Test adding to an identity queue, with salience"
+(deftest adding-to-an-identity-queue-with-salience
   (let [data (shuffle (range 10))
         queue (reduce q/add (q/new-queue identity identity) data)]
     (is (= (range 10) (q/drain queue)))
@@ -47,11 +45,11 @@
    {:id 5 :s 3 :data (atom 1)}
    {:id 6 :s 2 :data (atom 1)}])
 
-(defn updater
+(defn- updater
   "Updates the :data atom in the element with an increment and returns the element"
-  [e]
-  (update-in e [:data] swap! inc)
-  e)
+  [queue-element]
+  (swap! (:data queue-element) inc)
+  queue-element)
 
 (defn- adder [queue e] (q/add queue updater e))
 

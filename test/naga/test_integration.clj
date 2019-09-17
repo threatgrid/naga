@@ -1,6 +1,6 @@
 (ns naga.test-integration
   (:require [clojure.test :refer :all]
-            [clojure.string :as str]
+            [clojure.string :as string]
             [naga.cli :refer :all]
             [cheshire.core :as json])
   (:import [java.io StringWriter]))
@@ -12,7 +12,7 @@
     (binding [*out* out-buffer
               *err* err-buffer]
       (let [a (if (= 1 (count args))
-                (remove empty? (str/split (first args) #"\s"))
+                (remove empty? (string/split (first args) #"\s"))
                 args)]
         (apply f a)
         [(.toString out-buffer) (.toString err-buffer)]))))
@@ -44,4 +44,3 @@
     (is (empty? out))
     (is (empty? err))
     (is (= (sort-by :id json-result) json-out))))
-
