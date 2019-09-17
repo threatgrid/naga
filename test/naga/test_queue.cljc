@@ -34,20 +34,6 @@
    {:id 6 :s 2}])
 
 (deftest structure-elts
-         (let [queue (reduce q/add (q/new-queue :s :id) test-data)]
-           (is (= [4 1 2 3 6 5] (map :id (q/drain queue))))
-           (let [q2 (-> queue (q/add {:id 3 :s 2}) (q/add {:id 2 :s 3}))]
-             (is (= [4 1 2 3 6 5] (map :id (q/drain q2)))))))
-
-(def test-data
-  [{:id 1 :s 2}
-   {:id 2 :s 2}
-   {:id 3 :s 2}
-   {:id 4 :s 1}
-   {:id 5 :s 3}
-   {:id 6 :s 2}])
-
-(deftest structure-elts
   (let [queue (reduce q/add (q/new-queue :s :id) test-data)]
     (is (= [4 1 2 3 6 5] (map :id (q/drain queue))))
     (let [q2 (-> queue (q/add {:id 3 :s 2}) (q/add {:id 2 :s 3}))]
