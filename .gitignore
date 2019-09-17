@@ -10,4 +10,4 @@ pom.xml.asc
 .hgignore
 .hg/
 .eastwood
-test/tmp/out.jso
+test/tmp/*
