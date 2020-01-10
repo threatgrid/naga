@@ -8,7 +8,7 @@
                  [prismatic/schema "1.1.10"]
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "0.7.1"]
-                 [org.clojars.quoll/parsatron "0.0.8"]
+                 [org.clojars.quoll/parsatron "0.0.9"]
                  [cheshire "5.8.0"]
                  [org.clojars.quoll/naga-store "0.3.3"]
                  [org.clojars.quoll/asami "0.4.1"]
