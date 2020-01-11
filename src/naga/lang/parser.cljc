@@ -1,9 +1,8 @@
 (ns naga.lang.parser
   "Parser for Pabu, which is a Prolog-like syntax for Naga."
-  (:refer-clojure :exclude [char])
   (:require [clojure.string :as string]
-            #?(:clj [the.parsatron :refer [defparser let->> >> always between many attempt char string run]]
-               :cljs [the.parsatron :refer [always between many attempt char string run]
+            #?(:clj [the.parsatron :refer [defparser let->> >> always between many attempt ch string run]]
+               :cljs [the.parsatron :refer [always between many attempt ch string run]
                                     :refer-macros [defparser let->> >>]])
             [naga.lang.basic :refer
              [whitespace-char opt-whitespace separator open-paren close-paren
@@ -52,7 +51,7 @@
   (let->> [head (>> opt-whitespace (structures))
            _ (>> opt-whitespace (string ":-") opt-whitespace)
            body (structures)
-           _ (>> opt-whitespace (char \.) opt-whitespace)]
+           _ (>> opt-whitespace (ch \.) opt-whitespace)]
     (always {:type :rule
              :head head
              :body body})))
@@ -60,7 +59,7 @@
 ;; an axiom
 (defparser base-clause []
   (let->> [structure (>> opt-whitespace (structure))
-           _ (>> opt-whitespace (char \.) opt-whitespace)]
+           _ (>> opt-whitespace (ch \.) opt-whitespace)]
     (always {:type :axiom
              :axiom structure})))
 
