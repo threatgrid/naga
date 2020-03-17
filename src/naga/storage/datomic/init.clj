@@ -1,6 +1,7 @@
 (ns ^{:doc "Initialization data for Datomic"
       :author "Paula Gearon"}
     naga.storage.datomic.init
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [datomic.api :as d :refer [q]])
   (:import [datomic Peer]))
 
