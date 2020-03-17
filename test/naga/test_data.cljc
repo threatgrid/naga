@@ -4,9 +4,13 @@
             [naga.store :as store :refer [query assert-data retract-data]]
             [asami.core :refer [empty-store]]
             [asami.multi-graph]
-            #?(:clj  [clojure.test :as t :refer [deftest is]]
-               :cljs [clojure.test :as t :refer-macros [deftest is]]))
+            #?(:clj  [schema.test :as st :refer [deftest]]
+               :cljs [schema.test :as st :refer-macros [deftest]])
+            #?(:clj  [clojure.test :as t :refer [is]]
+               :cljs [clojure.test :as t :refer-macros [is]]))
   #?(:clj (:import [java.time ZonedDateTime])))
+
+(t/use-fixtures :once st/validate-schemas)
 
 (deftest test-encode-from-string
   (let [m1 (string->triples (test-helper/new-store)
