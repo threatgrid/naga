@@ -149,14 +149,18 @@
         dr6 (round-trip d6)
 
         d7 #{{:prop "val" :arr (map identity [{:a 1} {:a 2} ["nested"]]) :nested {}}}
-        dr7 (round-trip d7)]
+        dr7 (round-trip d7)
+
+        d8 #{{:prop "val" :arr #{{:a 1} {:a 2} ["nested"]}}}
+        dr8 (set (map #(update % :arr set) (round-trip d8)))]
     (is (= d1 dr1))
     (is (= d2 dr2))
     (is (= d3 dr3))
     (is (= d4 dr4))
     (is (= d5 dr5))
     (is (= d6 dr6))
-    (is (= d7 dr7))))
+    (is (= d7 dr7))
+    (is (= d8 dr8))))
 
 (defn generate-diff
   [o1 o2]
@@ -196,23 +200,23 @@
 (deftest test-multi-update
   (let [graph
         #asami.multi_graph.MultiGraph{:spo #:mem{:node-27367
-                                                 {:db/ident #:mem{:node-27367 1},
-                                                  :naga/entity {true 1},
-                                                  :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" 1},
-                                                  :type {"sha256" 1},
-                                                  :id {"4f390192" 1}}},
+                                                 {:db/ident #:mem{:node-27367 {:count 1}},
+                                                  :naga/entity {true {:count 1}},
+                                                  :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" {:count 1}},
+                                                  :type {"sha256" {:count 1}},
+                                                  :id {"4f390192" {:count 1}}}},
                                       :pos {:db/ident
-                                            #:mem{:node-27367 #:mem{:node-27367 1}},
-                                            :naga/entity {true #:mem{:node-27367 1}},
-                                            :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" #:mem{:node-27367 1}},
-                                            :type {"sha256" #:mem{:node-27367 1}},
-                                            :id {"4f390192" #:mem{:node-27367 1}}},
-                                      :osp {:mem/node-27367 #:mem{:node-27367 #:db{:ident 1}},
-                                            true #:mem{:node-27367 #:naga{:entity 1}},
+                                            #:mem{:node-27367 #:mem{:node-27367 {:count 1}}},
+                                            :naga/entity {true #:mem{:node-27367 {:count 1}}},
+                                            :value {"01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9" #:mem{:node-27367 {:count 1}}},
+                                            :type {"sha256" #:mem{:node-27367 {:count 1}}},
+                                            :id {"4f390192" #:mem{:node-27367 {:count 1}}}},
+                                      :osp {:mem/node-27367 #:mem{:node-27367 #:db{:ident {:count 1}}},
+                                            true #:mem{:node-27367 #:naga{:entity {:count 1}}},
                                             "01468b1d3e089985a4ed255b6594d24863cfd94a647329c631e4f4e52759f8a9"
-                                            #:mem{:node-27367 {:value 1}},
-                                            "sha256" #:mem{:node-27367 {:type 1}},
-                                            "4f390192" #:mem{:node-27367 {:id 1}}}}
+                                            #:mem{:node-27367 {:value {:count 1}}},
+                                            "sha256" #:mem{:node-27367 {:type {:count 1}}},
+                                            "4f390192" #:mem{:node-27367 {:id {:count 1}}}}}
         store (asami.core.MemoryStore. nil graph)
         id "verdict:AMP File Reputation:4f390192"
         m {:type "verdict",
