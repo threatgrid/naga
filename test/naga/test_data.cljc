@@ -1,5 +1,5 @@
 (ns naga.test-data
-  (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples]]
+  (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples id->json ident->json]]
             [naga.storage.test-helper :as test-helper]
             [naga.store :as store :refer [query assert-data retract-data]]
             [asami.core :refer [empty-store]]
@@ -194,6 +194,18 @@
 (defn get-node-ref
   [store id]
   (ffirst (query store '[?n] [['?n :id id]])))
+
+
+(deftest test-id->json
+  (let [data {:id "1234" :prop "value" :attribute 2}
+        m (json->triples empty-store [data])
+        store' (store/assert-data empty-store m)
+        ref (get-node-ref store' "1234")
+        store (store/assert-data store' [[ref "Connected_To" ref]])
+        obj1 (id->json store ref)
+        obj2 (id->json store ref #{"Connected_To"})]
+    (is (= data obj1))
+    (is (= data obj2))))
 
 
 #?(:clj

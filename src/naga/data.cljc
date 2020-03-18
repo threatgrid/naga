@@ -245,7 +245,7 @@
    (id->json store entity-id nil))
   ([store :- StorageType
     entity-id :- s/Any
-    exclusions :- (s/maybe #{s/Keyword})]
+    exclusions :- (s/maybe #{(s/cond-pre s/Keyword s/Str)})]
    (let [prop-vals (property-values store entity-id)
          pvs (if (seq exclusions)
                (remove (comp exclusions first) prop-vals)
