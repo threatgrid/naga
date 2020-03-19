@@ -5,6 +5,8 @@
             [cheshire.core :as json])
   (:import [java.io StringWriter]))
 
+(def out *out*)
+
 (defn capture-output
   [f & args]
   (with-open [out-buffer (StringWriter.)
@@ -14,7 +16,13 @@
       (let [a (if (= 1 (count args))
                 (remove empty? (string/split (first args) #"\s"))
                 args)]
-        (apply f a)
+        (try
+          (apply f a)
+          (catch Exception e
+            (binding [*out* out]
+              (println (.toString out-buffer))
+              (println (.toString err-buffer)))
+            (throw e)))
         [(.toString out-buffer) (.toString err-buffer)]))))
 
 (def family-out

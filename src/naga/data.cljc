@@ -27,7 +27,15 @@
 
 (def ^:dynamic *current-storage* nil)
 
-(def Triple [s/Any s/Keyword s/Any])
+(def Triple [(s/one s/Any "Entity")
+             (s/one s/Keyword "attribute")
+             (s/one s/Any "value")])
+
+(def EntityTriplesPair [(s/one s/Any "node ID")
+                        (s/one [Triple] "current list of triples")])
+
+(def KeyValue [(s/one s/Keyword "Key") (s/one s/Any "Value")])
+
 
 (defn get-naga-first
   "Finds the naga/first property in a map, and gets the value."
@@ -72,7 +80,7 @@
                   triples
                   next-triples)])))
 
-(s/defn value-triples-list :- [(s/one s/Any "node ID") (s/one [Triple] "current list of triples")]
+(s/defn value-triples-list :- EntityTriplesPair
   [vlist :- [s/Any]]
   (let [[node triples :as raw-result] (list-triples vlist)]
     (if triples
@@ -87,7 +95,7 @@
   [v]
   (cond
     (sequential? v) (value-triples-list v)
-    (set? v) (value-triples-list v)
+    (set? v) (value-triples-list (seq v))
     (map? v) (map->triples v)
     (nil? v) nil
     :default [v nil]))
@@ -96,12 +104,12 @@
   "Takes a property-value pair associated with an entity,
    and builds triples around it"
   [entity-id :- s/Any
-   [property value] :- [s/Keyword s/Any]]
+   [property value] :- KeyValue]
   (if-let [[value-id value-data] (value-triples value)]
     (cons [entity-id property value-id] value-data)))
 
 
-(s/defn map->triples :- [s/Any [Triple]]
+(s/defn map->triples :- EntityTriplesPair
   "Converts a single map to triples. Returns a pair of the map's ID and the triples for the map."
   [data :- {s/Keyword s/Any}]
   (let [entity-id (or (:db/id data) (store/new-node *current-storage*))
@@ -118,7 +126,7 @@
     (store/node-label *current-storage* id)))
 
 
-(s/defn ident-map->triples :- [s/Any [Triple]]
+(s/defn ident-map->triples :- [Triple]
   "Converts a single map to triples for an ID'ed map"
   ([storage j]
    (binding [*current-storage* storage]
@@ -159,8 +167,7 @@
 
 ;; extracting from the store
 
-
-(s/defn property-values :- [[s/Keyword s/Any]]
+(s/defn property-values :- [KeyValue]
   "Return all the property/value pairs for a given entity in the store.
    Skips non-keyword properties, as these are not created by naga.data"
   [store :- StorageType
@@ -169,7 +176,7 @@
        (filter (comp keyword? first))))
 
 
-(s/defn check-structure :- (s/maybe [[s/Keyword s/Any]])
+(s/defn check-structure :- (s/maybe [KeyValue])
   "Determines if a value represents a structure. If so, return the property/values for it.
    Otherwise, return nil."
   [store :- StorageType
@@ -187,7 +194,7 @@
    else, nil."
   [store :- StorageType
    seen :- #{s/Any}
-   pairs :- [[s/Keyword s/Any]]]
+   pairs :- [KeyValue]]
   ;; convert the data to a map
   (let [st (into {} pairs)]
     ;; if the properties indicate a list, then process it
@@ -206,7 +213,7 @@
   If referring directly to a top level node, then short circuit and return the ID"
   [store :- StorageType
    seen :- #{s/Keyword}
-   [prop v :as prop-val] :- [s/Keyword s/Any]]
+   [prop v :as prop-val] :- KeyValue]
   (if-let [pairs (check-structure store prop v)]
     (if (some #(= :naga/entity (first %)) pairs)
       [prop (some (fn [[k v]] (if (= :id k) v)) pairs)]
@@ -218,9 +225,9 @@
 (s/defn pairs->json :- {s/Keyword s/Any}
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   ([store :- StorageType
-    prop-vals :- [[s/Keyword s/Any]]] (pairs->json store prop-vals #{}))
+    prop-vals :- [KeyValue]] (pairs->json store prop-vals #{}))
   ([store :- StorageType
-    prop-vals :- [[s/Keyword s/Any]]
+    prop-vals :- [KeyValue]
     seen :- #{s/Keyword}]
    (if (some (fn [[k _]] (= :naga/first k)) prop-vals)
      (build-list store seen prop-vals)
@@ -238,7 +245,7 @@
    (id->json store entity-id nil))
   ([store :- StorageType
     entity-id :- s/Any
-    exclusions :- (s/maybe #{s/Keyword})]
+    exclusions :- (s/maybe #{(s/cond-pre s/Keyword s/Str)})]
    (let [prop-vals (property-values store entity-id)
          pvs (if (seq exclusions)
                (remove (comp exclusions first) prop-vals)

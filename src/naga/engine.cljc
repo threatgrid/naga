@@ -1,7 +1,7 @@
 (ns ^{:doc "Functions to run rules until completion."
       :author "Paula Gearon"}
     naga.engine
-    (:require [naga.schema.store-structs :as ss :refer [#_EPVPattern]]
+    (:require [naga.schema.store-structs :as ss]
               [naga.schema.structs :as st
                :refer
                #?(:clj  [RulePatternPair StatusMap
@@ -11,6 +11,7 @@
               [naga.queue :as q :refer [PQueueType]]
               [naga.store-registry :as store-registry]
               [naga.store :as store :refer [StorageType]]
+              [naga.rules :as r]
               [naga.util :as u]
               [schema.core :as s])
     #?(:clj
@@ -68,7 +69,7 @@
   (reduce (fn [rqueue [rname pattern]]
             (let [{status :status :as sched-rule} (get rules rname)
                   constraint-data (get status pattern)]
-              (when-not (list? pattern)
+              (when-not (list? (first pattern))
                 (assert constraint-data
                         (str "rule-constraint pair missing in rule: " rname))
                 (swap! constraint-data update-in [:dirty] true*))
@@ -146,10 +147,9 @@
   [rules :- {s/Str Rule}]
   (letfn [(init-rule [{:keys [head body name salience downstream]}]
             (st/new-rule head body name downstream salience
-                         (u/mapmap (fn [_]
-                                     (atom {:last-count 0
-                                            :dirty true}))
-                                   (remove list? body))
+                         (zipmap (r/collect-patterns body)
+                                 (map atom (repeat {:last-count 0
+                                                    :dirty true})))
                          (atom 0)))]
     (into {} (map (fn [[rule-name rule]]
                     [rule-name (init-rule rule)])

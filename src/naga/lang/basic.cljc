@@ -1,14 +1,13 @@
 (ns naga.lang.basic
-  (:refer-clojure :exclude [char])
   (:require [clojure.string :as string]
-            #?(:clj [the.parsatron :refer [char token choice attempt either
+            #?(:clj [the.parsatron :refer [ch token choice attempt either
                                            string many many1 >> let->>
                                            digit letter always never defparser
-                                           between fail]]
-               :cljs [the.parsatron :refer [char token choice attempt either
+                                           between]]
+               :cljs [the.parsatron :refer [ch token choice attempt either
                                             string many many1
                                             digit letter always never
-                                            between fail]
+                                            between]
                                     :refer-macros [>> let->> defparser]])
             [naga.schema.store-structs :as ss]))
 
@@ -46,29 +45,29 @@
 
 ;; parser that looks for comments of the form:  /* the comment */
 (defparser cmnt []
-  (let->> [_ (>> (string "/*") (many non-star) (many1 (char \*)))
-           _ (many (>> non-slash (many non-star) (many1 (char \*))))
-           _ (char \/)]
+  (let->> [_ (>> (string "/*") (many non-star) (many1 (ch \*)))
+           _ (many (>> non-slash (many non-star) (many1 (ch \*))))
+           _ (ch \/)]
     (always :cmnt)))
 
 ;; parsers for various single characters, etc
 (def whitespace-char (token #{\space \newline \tab}))
 (def opt-whitespace (many (either whitespace-char (attempt (cmnt)))))
-(def separator (>> opt-whitespace (char \,) opt-whitespace))
-(def open-paren (>> (char \() opt-whitespace))
-(def close-paren (>> opt-whitespace (char \))))
+(def separator (>> opt-whitespace (ch \,) opt-whitespace))
+(def open-paren (>> (ch \() opt-whitespace))
+(def close-paren (>> opt-whitespace (ch \))))
 
-(def equals (char \=))
+(def equals (ch \=))
 (def not-equals (string "!="))
-(def lt (char \<))
-(def gt (char \>))
+(def lt (ch \<))
+(def gt (ch \>))
 (def lte (string "<="))
 (def gte (string ">="))
 
-(def plus (char \+))
-(def minus (char \-))
-(def divd (char \/))
-(def tms (char \*))
+(def plus (ch \+))
+(def minus (ch \-))
+(def divd (ch \/))
+(def tms (ch \*))
 
 (def non-dquote (token (complement #{\"})))
 (def non-squote (token (complement #{\'})))
@@ -85,7 +84,7 @@
 
 ;; This does not include all legal characters.
 ;; Consider some others in future, especially >
-(def ns-word (many1 (choice (letter) (digit) (char \_) (char \-) (char \:))))
+(def ns-word (many1 (choice (letter) (digit) (ch \_) (ch \-) (ch \:))))
 
 (def word (many1 (letter)))
 
@@ -102,19 +101,19 @@
 
 (defparser floating-point []
   (let->> [i (either digits (signed-digits))
-           f (>> (char \.) (many1 (digit)))]
+           f (>> (ch \.) (many1 (digit)))]
     (always (atof (apply str (string/join i) \. f)))))
 
 (def number (either* (floating-point) (integer)))
 
 ;; parses strings of the form: 'it''s a string!'
 (defparser pstring1 []
-  (let->> [s (many1 (between (char \') (char \') (many non-squote)))]
+  (let->> [s (many1 (between (ch \') (ch \') (many non-squote)))]
     (always (string/join (flatten (interpose \' s))))))
 
 ;; parses strings of the form: "She said, ""Hello,"" to me."
 (defparser pstring2 []
-  (let->> [s (many1 (between (char \") (char \") (many non-dquote)))]
+  (let->> [s (many1 (between (ch \") (ch \") (many non-dquote)))]
     (always (string/join (flatten (interpose \" s))))))
 
 (def pstring (either (pstring1) (pstring2)))
@@ -122,7 +121,7 @@
 ;; variables start with a capital. Internally they start with ?
 (defparser variable []
   (let->> [f (upper-case-letter)
-           r (many (choice (letter) (digit) (char \_) (char \-)))]
+           r (many (choice (letter) (digit) (ch \_) (ch \-)))]
     (always (symbol (apply str "?" (to-lower-case f) r)))))
 
 (defn build-keyword

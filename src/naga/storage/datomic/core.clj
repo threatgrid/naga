@@ -1,6 +1,7 @@
 (ns ^{:doc "Storage wrapper around Datomic"
       :author "Paula Gearon"}
     naga.storage.datomic.core
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [naga.store :as store]
             [naga.store-registry :as store-registry]
             [naga.storage.datomic.init :as init]

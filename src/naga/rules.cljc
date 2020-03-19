@@ -4,11 +4,10 @@
               [naga.util :as u]
               [naga.schema.store-structs :as ss :refer [EPVPattern Axiom]]
               [naga.schema.structs :as st
-                                   :refer #?(:clj [RulePatternPair Body Program]
+                                   :refer #?(:clj  [RulePatternPair Body Program]
                                              :cljs [RulePatternPair Body Program Rule])]
               #?(:clj  [schema.core :as s]
-                 :cljs [schema.core :as s :include-macros true])
-              )
+                 :cljs [schema.core :as s :include-macros true]))
     #?(:clj (:import [naga.schema.structs Rule])))
 
 (defn- gen-rule-name [] (name (gensym "rule-")))
@@ -135,6 +134,16 @@
     (and (not (fresh-var? x)) (not (fresh-var? y)) (check-symbol x))
     (or (= x y) (and (symbol? y) (not (fresh-var? y)) (check-symbol y)))))
 
+(s/defn collect-patterns :- [EPVPattern]
+  "Recurses through a rule body to find all EPV Patterns"
+  [body :- Body]
+  (let [constraints (remove (comp list? first) body)]
+    (concat (filter vector? constraints)       ;; top level patterns
+            (->> constraints
+                 (filter list?)                ;; nested operations
+                 (map rest)                    ;; arguments only
+                 (mapcat collect-patterns))))) ;; recurse
+
 (s/defn match? :- s/Bool
   "Does pattern a match pattern b?"
   [a :- EPVPattern, b :- EPVPattern]
@@ -147,7 +156,9 @@
   (letfn [(matches? [b]
             "Return a name/pattern if a matches the pattern in b"
             (if (match? a b) [nm b]))]
-    (keep matches? sb)))
+    (->> sb
+         collect-patterns
+         (keep matches?))))
 
 (defn dbg [x] (println x) x)
 
