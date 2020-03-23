@@ -36,6 +36,7 @@
 
 (def KeyValue [(s/one s/Keyword "Key") (s/one s/Any "Value")])
 
+(def MapOrList (s/cond-pre {s/Keyword s/Any} [s/Any]))
 
 (defn get-naga-first
   "Finds the naga/first property in a map, and gets the value."
@@ -222,7 +223,7 @@
     prop-val))
 
 
-(s/defn pairs->json :- {s/Keyword s/Any}
+(s/defn pairs->json :- MapOrList
   "Uses a set of property-value pairs to load up a nested data structure from the graph"
   ([store :- StorageType
     prop-vals :- [KeyValue]] (pairs->json store prop-vals #{}))
@@ -238,7 +239,7 @@
           (into {})))))
 
 
-(s/defn id->json :- {s/Keyword s/Any}
+(s/defn id->json :- MapOrList
   "Uses an id node to load up a nested data structure from the graph"
   ([store :- StorageType
     entity-id :- s/Any]
@@ -253,7 +254,7 @@
      (pairs->json store pvs))))
 
 
-(s/defn ident->json :- {s/Keyword s/Any}
+(s/defn ident->json :- MapOrList
   "Converts data in a database to data structures suitable for JSON encoding"
   [store :- StorageType
    ident :- s/Any]
@@ -263,7 +264,7 @@
                 (ffirst (store/resolve-pattern store '[?eid :db/ident ident])))]
     (id->json store eid)))
 
-(s/defn store->json :- [{s/Keyword s/Any}]
+(s/defn store->json :- [MapOrList]
   "Pulls all top level JSON out of a store"
   ([store :- StorageType]
    (store->json store nil))
