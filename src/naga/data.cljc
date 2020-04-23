@@ -201,8 +201,7 @@
     ;; if the properties indicate a list, then process it
     (when-let [first-prop-elt (get-naga-first st)]
       (let [remaining (:naga/rest st)
-            [_ first-elt] (recurse-node store seen first-prop-elt)]
-        (assert first-elt)
+            [_ first-elt :as rn] (recurse-node store seen first-prop-elt)]
         ;; recursively build the list
         (if remaining
           (cons first-elt (build-list store seen (property-values store remaining)))
