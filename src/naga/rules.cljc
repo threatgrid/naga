@@ -2,7 +2,9 @@
     "Defines rule structures and constructors to keep them consistent"
     (:require [clojure.set :as set]
               [naga.util :as u]
-              [naga.schema.store-structs :as ss :refer [EPVPattern Axiom]]
+              [naga.schema.store-structs :as ss :refer [EPVPattern Axiom Pattern
+                                                        vartest? filter-pattern?
+                                                        op-pattern? eval-pattern?]]
               [naga.schema.structs :as st
                                    :refer #?(:clj  [RulePatternPair Body Program]
                                              :cljs [RulePatternPair Body Program Rule])]
@@ -21,10 +23,29 @@
   [x]
   (and (symbol? x) (= \% (first (name x)))))
 
-(defn- vars [constraint]
-  (if (list? (first constraint))
-    (filter ss/vartest? (rest (first constraint)))
-    (ss/vars constraint)))
+(defn bindings?
+  [b]
+  (and (vector? (:cols (meta b))) (sequential? b)))
+
+(def operators '#{not NOT or OR and AND})
+
+(defn epv-pattern?
+  [pattern]
+  (or (ss/epv-pattern? pattern)
+      (and (= 3 (count pattern))
+           (not (operators (first pattern)))
+           (not (some sequential? pattern)))))
+
+(defn get-vars
+  [[f & r :as pattern]]
+  (cond
+    (epv-pattern? pattern) (set (ss/vars pattern))
+    (filter-pattern? pattern) (set (filter vartest? f))
+    (op-pattern? pattern) (if (operators f)
+                            (map get-vars r)
+                            (throw (ex-info "Unknown operator" {:op f :args r})))
+    (eval-pattern? pattern) (filter vartest? f)
+    :default (throw (ex-info (str "Unknown pattern type in rule: " pattern) {:pattern pattern}))))
 
 (defn mark-unbound
   "Convert a head to use fresh vars for any vars that are unbound.
@@ -53,9 +74,9 @@
               ;; to patterns that are included via fresh vars
               (loop [incvars #{}
                      patterns (set (filter (comp fresh-var? first) head))]
-                (let [new-vars (into incvars (mapcat vars patterns))
+                (let [new-vars (into incvars (mapcat get-vars patterns))
                       new-patterns (set (filter #(and (not (patterns %))
-                                                      (some new-vars (vars %)))
+                                                      (some new-vars (get-vars %)))
                                                 head))]
                   (if (seq new-patterns)
                     (recur new-vars (into patterns new-patterns))
@@ -73,11 +94,13 @@
   "Creates a new rule"
   ([head body] (rule head body (gen-rule-name)))
   ([head body name]
-   (assert (and (sequential? body) (or (empty? body) (every? vector? body)))
-           (str "Body must be a sequence of constraints: " (into [] body)))
+   (try
+     (s/validate [Pattern] body)
+     (catch #?(:clj Throwable :cljs :default) e
+         (assert (not body) (ex-message e))))
    (assert (and (sequential? head) (or (empty? head) (every? sequential? head)))
            "Head must be a sequence of constraints")
-   (assert (every? (complement fresh-var?) (mapcat vars body))
+   (assert (every? (complement fresh-var?) (mapcat get-vars body))
            "Fresh vars are not allowed in a body")
    (st/new-rule (mark-unbound head body) body name)))
 
