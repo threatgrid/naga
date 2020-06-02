@@ -160,10 +160,10 @@
 (s/defn collect-patterns :- [EPVPattern]
   "Recurses through a rule body to find all EPV Patterns"
   [body :- Body]
-  (let [constraints (remove (comp list? first) body)]
+  (let [constraints (remove (comp seq? first) body)]
     (concat (filter vector? constraints)       ;; top level patterns
             (->> constraints
-                 (filter list?)                ;; nested operations
+                 (filter seq?)                 ;; nested operations
                  (map rest)                    ;; arguments only
                  (mapcat collect-patterns))))) ;; recurse
 
