@@ -78,6 +78,38 @@
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
+(deftest op-rule
+  (store-registry/register-storage! :memory mem/create-store)
+  #_(let [r1 [(r "add-second" [?x :first ?z] :- [?x :foo ?y] (or [?y :first ?z] [?y :second ?z]))
+            (r "add-first" [?z :foo ?x] :- [?x :first ?s] [?x :foo ?y] [?z :bar ?x])]
+        a1 [[:x1 :foo :y1] [:y1 :second 4] [:z1 :bar :x1]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 6 (count data)))
+    (is (every? #{:x1 :y1 :z1} (map first data)))
+    (is (= #{[:x1 :foo :y1] [:y1 :second 4] [:z1 :bar :x1] [:x1 :first 4] [:z1 :foo :x1] [:z1 :first 4]} (set data)))))
+
+(deftest update-prop
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "update-prop" [?x :bar' 5] :- [?x :foo ?y])]
+        a1 [[:data :foo :bar] [:data :bar 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 2 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :bar 5]} (set data))))
+  ;; TODO: introduce variable update attributes after Asami 2.0
+  #_(let [r1 [(r "update-prop" [?x ?p' 5] :- [?x :foo ?y] [?z :is ?p])]
+        a1 [[:data :foo :bar] [:data :bar 4] [:prop :is :bar]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :bar 5] [:prop :is :bar]} (set data)))))
+
 (deftest multi-prop
   (store-registry/register-storage! :memory mem/create-store)
   (let [r2 [(r "multi-prop" [?x :first :a] [?x :second :b] :- [?x :foo ?y])]

@@ -47,11 +47,21 @@
     (eval-pattern? pattern) (filter vartest? f)
     :default (throw (ex-info (str "Unknown pattern type in rule: " pattern) {:pattern pattern}))))
 
+(def specials #{\' \*})
+
+(defn strip-special
+  [s]
+  (let [n (name s)
+        l (dec (count n))]
+    (if (specials (nth n l))
+      (symbol (namespace s) (subs n 0 l))
+      s)))
+
 (defn mark-unbound
   "Convert a head to use fresh vars for any vars that are unbound.
    Scans the vars in the body to identify which vars are unbound."
   [head body]
-  (let [all-vars (fn [xs] (set (mapcat (partial filter ss/vartest?) xs)))
+  (let [all-vars (fn [xs] (into #{} (comp (mapcat (partial filter ss/vartest?)) (map strip-special)) xs))
         head-vars (all-vars head)
         body-vars (all-vars body)
         unbound? (set/difference head-vars body-vars)]
@@ -120,6 +130,7 @@
   (or (cond
         (keyword? e) (u/get-fn-reference e)
         (symbol? e) (cond
+                      (operators e) e
                       (namespace e) (u/get-fn-reference e)
                       (= \? (first (name e))) e
                       :default (u/get-fn-reference
