@@ -42,7 +42,7 @@
     (epv-pattern? pattern) (set (ss/vars pattern))
     (filter-pattern? pattern) (set (filter vartest? f))
     (op-pattern? pattern) (if (operators f)
-                            (map get-vars r)
+                            (set (mapcat get-vars r))
                             (throw (ex-info "Unknown operator" {:op f :args r})))
     (eval-pattern? pattern) (filter vartest? f)
     :default (throw (ex-info (str "Unknown pattern type in rule: " pattern) {:pattern pattern}))))
@@ -61,7 +61,10 @@
   "Convert a head to use fresh vars for any vars that are unbound.
    Scans the vars in the body to identify which vars are unbound."
   [head body]
-  (let [all-vars (fn [xs] (into #{} (comp (mapcat (partial filter ss/vartest?)) (map strip-special)) xs))
+  (let [
+        ; all-vars (fn [xs] (into #{} (comp (mapcat get-vars) (map strip-special)) xs))
+        all-vars (fn [xs]
+                   (into #{} (->> xs (mapcat get-vars) set (map strip-special))))
         head-vars (all-vars head)
         body-vars (all-vars body)
         unbound? (set/difference head-vars body-vars)]

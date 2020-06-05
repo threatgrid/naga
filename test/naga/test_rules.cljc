@@ -80,7 +80,7 @@
 
 (deftest op-rule
   (store-registry/register-storage! :memory mem/create-store)
-  #_(let [r1 [(r "add-second" [?x :first ?z] :- [?x :foo ?y] (or [?y :first ?z] [?y :second ?z]))
+  (let [r1 [(r "add-second" [?x :first ?z] :- [?x :foo ?y] (or [?y :first ?z] [?y :second ?z]))
             (r "add-first" [?z :foo ?x] :- [?x :first ?s] [?x :foo ?y] [?z :bar ?x])]
         a1 [[:x1 :foo :y1] [:y1 :second 4] [:z1 :bar :x1]]
         program (r/create-program r1 a1)
