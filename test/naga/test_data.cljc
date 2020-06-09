@@ -2,7 +2,7 @@
   (:require [naga.data :refer [string->triples json->triples store->json json-update->triples ident-map->triples id->json ident->json]]
             [naga.storage.test-helper :as test-helper]
             [naga.store :as store :refer [query assert-data retract-data]]
-            [asami.core :refer [empty-store]]
+            [naga.storage.asami.core :refer [empty-store]]
             [asami.multi-graph]
             #?(:clj  [schema.test :as st :refer [deftest]]
                :cljs [schema.test :as st :refer-macros [deftest]])
@@ -229,7 +229,7 @@
                                             #:mem{:node-27367 {:value {:count 1}}},
                                             "sha256" #:mem{:node-27367 {:type {:count 1}}},
                                             "4f390192" #:mem{:node-27367 {:id {:count 1}}}}}
-        store (asami.core.MemoryStore. nil graph)
+        store (naga.storage.asami.core.AsamiStore. nil graph)
         id "verdict:AMP File Reputation:4f390192"
         m {:type "verdict",
            :disposition 2,
