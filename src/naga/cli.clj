@@ -136,7 +136,7 @@
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
-        json-data (data-writer/stream->triples basic-store json-file)
+        json-data (data-writer/stream->triples (:graph basic-store) json-file)
         loaded-store (store/assert-data basic-store json-data)
 
         config (assoc store-config :store loaded-store)
@@ -145,7 +145,7 @@
 
         ;; run the program
         [store stats] (e/run config program)
-        output (data-reader/graph->str store)]
+        output (data-reader/graph->str (:graph store))]
     (spit out-file output)))
 
 (defn -main [& args]
