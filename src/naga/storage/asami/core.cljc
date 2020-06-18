@@ -8,7 +8,7 @@
               [asami.query :as query]
               [asami.internal :as internal]
               [naga.store :as store :refer [Storage StorageType]]
-              [naga.storage.store-util :as store-util]
+              [zuko.projection :as projection]
               [naga.store-registry :as registry]
               #?(:clj  [schema.core :as s]
                  :cljs [schema.core :as s :include-macros true])
@@ -70,31 +70,13 @@
            (filter (fn [s] (seq (gr/resolve-pattern graph [s :naga/entity '?]))))
            (sort-by #(subs (name %) 5)))))
 
-  (new-node [this]
-    (internal/new-node))
-
-  (node-id [this n]
-    (internal/node-id n))
-
-  (node-type? [this prop value]
-    (internal/node-type? value))
-
-  (data-property [_ data]
-    internal/data-property)
-
-  (container-property [_ data]
-    internal/container-property)
-
-  (resolve-pattern [_ pattern]
-    (gr/resolve-pattern graph pattern))
-
   (count-pattern [_ pattern]
     (if-let [count-fn (get-count-fn graph)]
       (count-fn pattern)
       (gr/count-pattern graph pattern)))
 
   (query [this output-pattern patterns]
-    (store-util/project internal/project-args
+    (projection/project internal/project-args
                         output-pattern
                         (query/join-patterns graph patterns nil)))
 
@@ -105,6 +87,9 @@
     (->AsamiStore before-graph (query/delete-from-graph graph data)))
 
   (assert-schema-opts [this _ _] this)
+
+  (resolve-pattern [_ pattern]
+    (gr/resolve-pattern graph pattern))
 
   (query-insert [this assertion-patterns patterns]
     ;; convert projection patterns to output form
@@ -123,7 +108,7 @@
                           (if (seq var-updates)
                             (throw (ex-info "Updating variable attributes not yet supported" {:vars var-updates}))
                             ;; TODO: when insert-project is imported, modify to attach columns for update vars 
-                            (store-util/insert-project (internal/project-ins-args graph)
+                            (projection/insert-project (internal/project-ins-args graph)
                                                        assertion-patterns' var-updates cols data))))
           lookup-triple (fn [part-pattern]
                           (let [pattern (conj part-pattern '?v)

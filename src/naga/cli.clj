@@ -9,7 +9,8 @@
             [naga.store :as store]
             [naga.rules :as r]
             [naga.engine :as e]
-            [naga.data :as data]
+            [zuko.entity.reader :as data-reader]
+            [zuko.entity.writer :as data-writer]
             [asami.core]
             [naga.storage.datomic.core])
   (:import [clojure.lang ExceptionInfo]
@@ -135,7 +136,7 @@
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
-        json-data (data/stream->triples basic-store json-file)
+        json-data (data-writer/stream->triples basic-store json-file)
         loaded-store (store/assert-data basic-store json-data)
 
         config (assoc store-config :store loaded-store)
@@ -144,7 +145,7 @@
 
         ;; run the program
         [store stats] (e/run config program)
-        output (data/store->str store)]
+        output (data-reader/graph->str store)]
     (spit out-file output)))
 
 (defn -main [& args]

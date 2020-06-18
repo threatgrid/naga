@@ -6,13 +6,13 @@
             [naga.store-registry :as store-registry]
             [naga.storage.datomic.init :as init]
             [naga.storage.datomic.schema :as sch]
-            [naga.storage.store-util :as store-util]
-            [naga.schema.store-structs :as nss]
-            [naga.util :as u]
+            [zuko.projection :as projection]
+            [zuko.node :as node :refer [NodeAPI]]
+            [zuko.util :as u]
             [schema.core :as s]
             [cheshire.core :as j]
-            [naga.schema.store-structs :as ss
-                                 :refer [EPVPattern FilterPattern Pattern Results Value]]
+            [zuko.schema :as ss
+                         :refer [EPVPattern FilterPattern Pattern Results Value]]
             [clojure.string :as string]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
@@ -105,7 +105,7 @@
                                   (s/one s/Any "value")]
   "Converts a triple into a Datomic assertion"
   [attr->type->new :- {s/Keyword {s/Keyword s/Keyword}}
-   [e a v] :- nss/Triple]
+   [e a v] :- ss/Triple]
   (let [m (attr->type->new a)
         na (if m (m (type->dbtype (generic-type v)) :err/unscanned) a)]
     [:db/add e na v]))
@@ -194,6 +194,13 @@
           (partial d/with (or db (d/db connection)))
           (comp deref (partial d/transact connection)))))
 
+(defn query-pattern
+  [db attributes pattern]
+  (let [vars (filter symbol? pattern)
+        patterns (expand-symbol symbol? pattern)
+        aproject (get-attrib-projection attributes pattern)]
+    (aproject (q {:find vars :where patterns} db))))
+
 ;; TODO: alias projection
 ;; if any attribute in a query patterns is a symbol, AND that symbol is in the output
 ;; then update the projection to rewrite that symbol as per get-attrib-projection
@@ -233,34 +240,8 @@
       (let [ids (map first data)]
         (top-ids db ids []))))
 
-  (new-node [_]
-    (d/tempid :naga/data)) ;; this matches the partition in init/pre-init-data
-
-  (node-id [_ n]
-    (subs (str (:idx n)) 1))
-
-  (node-type? [_ prop value]
-    ;; NB: an aliased property which can be a Long may incorrectly return true when value is Long.
-    ;; Rebuilding the structure will identify that the long does not refer to actual data.
-    (or (instance? DbId value)
-        (if-let [at (get (:types attributes) prop)] ;; look for the attribute type
-          ;; is the attribute a ref?
-          (= :db.type/ref at)
-          ;; attribute not known. Therefore aliased
-          (and (:db.type/ref (get (:overloads attributes) prop)) ;; is ref possible?
-               (instance? Long value))))) ;; ensure it's compatible with ref
-  
-  (data-property [_ data]
-    (kw-from-type (generic-type data) "first"))
-
-  (container-property [_ data]
-    (kw-from-type (generic-type data) "contains"))
-
   (resolve-pattern [this pattern]
-    (let [vars (filter symbol? pattern)
-          patterns (expand-symbol symbol? pattern)
-          aproject (get-attrib-projection attributes pattern)]
-      (aproject (q {:find vars :where patterns} db))))
+    (query-pattern db attributes pattern))
 
   (count-pattern [this pattern]
     (let [[fvar & rvars] (seq (filter dvar? pattern))]
@@ -279,8 +260,10 @@
           ;; so these must be projected into the result
           project-output (if (= vars output-pattern)
                            identity
-                           (partial store-util/project
-                                    this
+                           (partial projection/project
+                                    {:new-node #(d/tempid :naga/data)
+                                     :node-label (partial node/node-label this)
+                                     :resolve-pattern (partial query-pattern db attributes)}
                                     output-pattern))
           symbol-expansion (partial expand-symbol (set vars))
           patterns (mapcat symbol-expansion patterns)]
@@ -316,8 +299,35 @@
                             simple-project-pattern
                             [(first (get-vars patterns))])]
       (->> (store/query this project-pattern patterns)
-           (store-util/insert-project this assertion-patterns project-pattern)
-           (store/assert-data this)))))
+           (projection/insert-project this assertion-patterns project-pattern)
+           (store/assert-data this))))
+  
+  NodeAPI
+  (new-node [_]
+    (d/tempid :naga/data)) ;; this matches the partition in init/pre-init-data
+
+  (node-id [_ n]
+    (subs (str (:idx n)) 1))
+
+  (node-type? [_ prop value]
+    ;; NB: an aliased property which can be a Long may incorrectly return true when value is Long.
+    ;; Rebuilding the structure will identify that the long does not refer to actual data.
+    (or (instance? DbId value)
+        (if-let [at (get (:types attributes) prop)] ;; look for the attribute type
+          ;; is the attribute a ref?
+          (= :db.type/ref at)
+          ;; attribute not known. Therefore aliased
+          (and (:db.type/ref (get (:overloads attributes) prop)) ;; is ref possible?
+               (instance? Long value))))) ;; ensure it's compatible with ref
+  
+  (data-attribute [_ data]
+    (kw-from-type (generic-type data) "first"))
+
+  (container-attribute [_ data]
+    (kw-from-type (generic-type data) "contains"))
+
+  (find-triple [this pattern]
+    (query-pattern db attributes pattern)))
 
 
 (s/defn build-uri :- String

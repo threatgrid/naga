@@ -2,7 +2,7 @@
       :author "Paula Gearon"}
     naga.storage.datomic.schema
   (:require [clojure.string :as string]
-            [naga.util :as u])
+            [zuko.util :as u])
   (:import [datomic Peer]
            [java.util Map List]))
 
