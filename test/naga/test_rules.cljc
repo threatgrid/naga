@@ -121,6 +121,17 @@
     (is (every? #{:data} (map first data)))
     (is (= #{[:data :foo :bar] [:data :bar 5] [:prop :is :bar]} (set data)))))
 
+(deftest binding-vals
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "name-prop" [?x :label ?z] :- [?x :bar ?y] [(str "value=" ?y) ?z])]
+        a1 [[:data :foo :bar] [:data :bar 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :bar 4] [:data :label "value=4"]} (set data)))))
+
 (deftest multi-prop
   (store-registry/register-storage! :memory mem/create-store)
   (let [r2 [(r "multi-prop" [?x :first :a] [?x :second :b] :- [?x :foo ?y])]
