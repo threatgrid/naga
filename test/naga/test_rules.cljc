@@ -79,6 +79,17 @@
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
+(deftest string-edge
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "add-comp" [?x :arc ?z] :- [?x "foo" ?y] [?y :second ?z]) ]
+        a1 [[:x1 "foo" :y1] [:y1 :second 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:x1 :y1} (map first data)))
+    (is (= #{[:x1 "foo" :y1] [:y1 :second 4] [:x1 :arc 4]} (set data)))))
+
 (deftest op-rule
   (store-registry/register-storage! :memory mem/create-store)
   (let [r1 [(r "add-second" [?x :first ?z] :- [?x :foo ?y] (or [?y :first ?z] [?y :second ?z]))
@@ -110,6 +121,17 @@
     (is (= 3 (count data)))
     (is (every? #{:data} (map first data)))
     (is (= #{[:data :foo :bar] [:data :bar 5] [:prop :is :bar]} (set data)))))
+
+(deftest binding-vals
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "name-prop" [?x :label ?z] :- [?x :bar ?y] [(str "value=" ?y) ?z])]
+        a1 [[:data :foo :bar] [:data :bar 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :bar 4] [:data :label "value=4"]} (set data)))))
 
 (deftest multi-prop
   (store-registry/register-storage! :memory mem/create-store)

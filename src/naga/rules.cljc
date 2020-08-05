@@ -44,7 +44,7 @@
     (op-pattern? pattern) (if (operators f)
                             (set (mapcat get-vars r))
                             (throw (ex-info "Unknown operator" {:op f :args r})))
-    (eval-pattern? pattern) (set (filter vartest? f))
+    (eval-pattern? pattern) (set (filter vartest? r))
     :default (throw (ex-info (str "Unknown pattern type in rule: " pattern) {:pattern pattern}))))
 
 (def specials #{\' \*})
