@@ -1,10 +1,10 @@
 (ns naga.rules
     "Defines rule structures and constructors to keep them consistent"
     (:require [clojure.set :as set]
-              [naga.util :as u]
-              [naga.schema.store-structs :as ss :refer [EPVPattern Axiom Pattern
-                                                        vartest? filter-pattern?
-                                                        op-pattern? eval-pattern?]]
+              [zuko.util :as u]
+              [zuko.schema :as ss :refer [EPVPattern Axiom Pattern
+                                          vartest? filter-pattern?
+                                          op-pattern? eval-pattern?]]
               [naga.schema.structs :as st
                                    :refer #?(:clj  [RulePatternPair Body Program]
                                              :cljs [RulePatternPair Body Program Rule])]
@@ -44,7 +44,7 @@
     (op-pattern? pattern) (if (operators f)
                             (set (mapcat get-vars r))
                             (throw (ex-info "Unknown operator" {:op f :args r})))
-    (eval-pattern? pattern) (set (filter vartest? f))
+    (eval-pattern? pattern) (set (filter vartest? r))
     :default (throw (ex-info (str "Unknown pattern type in rule: " pattern) {:pattern pattern}))))
 
 (def specials #{\' \*})

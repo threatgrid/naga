@@ -1,11 +1,11 @@
 (ns naga.lang.pabu
   "Implements Pabu, which is a Prolog-like language for Naga.  Parses code and returns Naga rules."
-  (:require [naga.schema.store-structs :refer [Axiom Triple EPVPattern Pattern FilterPattern]]
+  (:require [zuko.schema :refer [Axiom Triple EPVPattern Pattern FilterPattern]]
             [naga.schema.structs :as structs :refer #?(:clj [Program]
                                                        :cljs [Program Rule])]
             [naga.lang.parser :as parser]
             [naga.rules :as r]
-            [naga.util :as u]
+            [zuko.util :as u]
             [clojure.string :as string]
             #?(:clj [schema.core :as s]
                :cljs [schema.core :as s :include-macros true]))

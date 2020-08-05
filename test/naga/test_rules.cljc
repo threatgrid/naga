@@ -5,7 +5,8 @@
             [naga.store :as store]
             [naga.store-registry :as store-registry]
             [naga.storage.test-helper :as test-helper]
-            [asami.core :as mem]
+            [naga.storage.asami.core :as mem]
+            [zuko.node :as node]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]
             [clojure.pprint :refer [pprint]]
@@ -78,6 +79,17 @@
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
+(deftest string-edge
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "add-comp" [?x :arc ?z] :- [?x "foo" ?y] [?y :second ?z]) ]
+        a1 [[:x1 "foo" :y1] [:y1 :second 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:x1 :y1} (map first data)))
+    (is (= #{[:x1 "foo" :y1] [:y1 :second 4] [:x1 :arc 4]} (set data)))))
+
 (deftest op-rule
   (store-registry/register-storage! :memory mem/create-store)
   (let [r1 [(r "add-second" [?x :first ?z] :- [?x :foo ?y] (or [?y :first ?z] [?y :second ?z]))
@@ -109,6 +121,17 @@
     (is (= 3 (count data)))
     (is (every? #{:data} (map first data)))
     (is (= #{[:data :foo :bar] [:data :bar 5] [:prop :is :bar]} (set data)))))
+
+(deftest binding-vals
+  (store-registry/register-storage! :memory mem/create-store)
+  (let [r1 [(r "name-prop" [?x :label ?z] :- [?x :bar ?y] [(str "value=" ?y) ?z])]
+        a1 [[:data :foo :bar] [:data :bar 4]]
+        program (r/create-program r1 a1)
+        [store results] (e/run {:type :memory} program)
+        data (store/resolve-pattern store '[?e ?a ?v])]
+    (is (= 3 (count data)))
+    (is (every? #{:data} (map first data)))
+    (is (= #{[:data :foo :bar] [:data :bar 4] [:data :label "value=4"]} (set data)))))
 
 (deftest multi-prop
   (store-registry/register-storage! :memory mem/create-store)
@@ -148,7 +171,7 @@
     (is (apply = node*))
     (is (some #(= [node :first :a] %) data))
     (is (some #(= [node :second :bar] %) data))
-    (is (some #(= [node :db/ident (store/node-label store node)] %) data)))
+    (is (some #(= [node :db/ident (node/node-label (:graph store) node)] %) data)))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y]
                [?a :first :b] [?a :third ?x] :- [?x :foo ?y])]
         ax [[:data :foo :bar]]
@@ -167,7 +190,7 @@
               (filter (fn [[e a v]]
                         (and (nodes e)
                              (= :db/ident a)
-                             (= (store/node-label store e) v)))
+                             (= (node/node-label (:graph store) e) v)))
                       data)))))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
         ax [[:data :foo :bar] [:other :foo :baz]]
@@ -181,7 +204,7 @@
     (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
-    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= :db/ident a) (= (store/node-label store e) v))) data))))))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= :db/ident a) (= (node/node-label (:graph store) e) v))) data))))))
 
 
 (deftest loop-breaking

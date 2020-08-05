@@ -1,8 +1,8 @@
 (ns naga.schema.structs
   #?(:clj  (:require [schema.core :as s]
-                     [naga.schema.store-structs :as nss :refer [EPVPattern Pattern Axiom]])
+                     [zuko.schema :as nss :refer [EPVPattern Pattern Axiom]])
      :cljs (:require [schema.core :as s :include-macros true]
-                     [naga.schema.store-structs :as nss :refer [EPVPattern Pattern Axiom]])))
+                     [zuko.schema :as nss :refer [EPVPattern Pattern Axiom]])))
 
 (def RulePatternPair [(s/one s/Str "rule-name")
                       (s/one EPVPattern "pattern")])

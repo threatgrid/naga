@@ -1,4 +1,4 @@
-# Naga [![Build Status](https://travis-ci.org/threatgrid/naga.svg?branch=master)](https://travis-ci.org/threatgrid/naga)
+# Naga [![Build Status](https://travis-ci.org/threatgrid/naga.svg?branch=main)](https://travis-ci.org/threatgrid/naga) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 Datalog based rules engine.
 
@@ -105,7 +105,7 @@ Naga defines a data access API to talk to storage. This is a Clojure protocol or
 called `Storage`, found in `naga.store`. It should be possible to wrap most graph database APIs
 in the `Storage` API.
 
-For the moment, the only configured implementation is an in-memory store.
+For the moment, the only configured implementations are [Asami](https://github.com/threatgrid/asami) and [Datomic](https://docs.datomic.com/on-prem/index.html). Recently, the focus has been on Asami.
 
 ## In Memory Database
 
@@ -124,7 +124,7 @@ These are based on the same architecture as the indexes in the
 
 ## License
 
-Copyright © 2016-2019 Cisco Systems
+Copyright © 2016-2020 Cisco Systems
 
 Copyright © 2011-2016 Paula Gearon
 

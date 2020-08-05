@@ -11,3 +11,5 @@ pom.xml.asc
 .hg/
 .eastwood
 test/tmp/*
+example_data/out.json
+deploy.tok
