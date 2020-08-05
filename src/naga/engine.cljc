@@ -1,7 +1,7 @@
 (ns ^{:doc "Functions to run rules until completion."
       :author "Paula Gearon"}
     naga.engine
-    (:require [naga.schema.store-structs :as ss]
+    (:require [zuko.schema :as ss]
               [naga.schema.structs :as st
                :refer
                #?(:clj  [RulePatternPair StatusMap
@@ -12,7 +12,7 @@
               [naga.store-registry :as store-registry]
               [naga.store :as store :refer [StorageType]]
               [naga.rules :as r]
-              [naga.util :as u]
+              [zuko.util :as u]
               [schema.core :as s])
     #?(:clj
        (:import [naga.schema.structs Rule DynamicRule])))

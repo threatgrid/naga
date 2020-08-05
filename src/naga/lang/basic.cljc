@@ -9,7 +9,7 @@
                                             digit letter always never
                                             between]
                                     :refer-macros [>> let->> defparser]])
-            [naga.schema.store-structs :as ss]))
+            [zuko.schema :as ss]))
 
 #?(:cljs (defn is-letter? [c] (.match c #"[a-zA-Z]")))
 

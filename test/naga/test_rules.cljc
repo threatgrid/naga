@@ -5,7 +5,8 @@
             [naga.store :as store]
             [naga.store-registry :as store-registry]
             [naga.storage.test-helper :as test-helper]
-            [asami.core :as mem]
+            [naga.storage.asami.core :as mem]
+            [zuko.node :as node]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]
             [clojure.pprint :refer [pprint]]
@@ -170,7 +171,7 @@
     (is (apply = node*))
     (is (some #(= [node :first :a] %) data))
     (is (some #(= [node :second :bar] %) data))
-    (is (some #(= [node :db/ident (store/node-label store node)] %) data)))
+    (is (some #(= [node :db/ident (node/node-label (:graph store) node)] %) data)))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y]
                [?a :first :b] [?a :third ?x] :- [?x :foo ?y])]
         ax [[:data :foo :bar]]
@@ -189,7 +190,7 @@
               (filter (fn [[e a v]]
                         (and (nodes e)
                              (= :db/ident a)
-                             (= (store/node-label store e) v)))
+                             (= (node/node-label (:graph store) e) v)))
                       data)))))
   (let [rx [(r "multi-prop" [?z :first :a] [?z :second ?y] :- [?x :foo ?y])]
         ax [[:data :foo :bar] [:other :foo :baz]]
@@ -203,7 +204,7 @@
     (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= [:first :a] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :bar] [a v]))) data))))
     (is (= 1 (count (filter (fn [[e a v]] (and (nodes e) (= [:second :baz] [a v]))) data))))
-    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= :db/ident a) (= (store/node-label store e) v))) data))))))
+    (is (= 2 (count (filter (fn [[e a v]] (and (nodes e) (= :db/ident a) (= (node/node-label (:graph store) e) v))) data))))))
 
 
 (deftest loop-breaking

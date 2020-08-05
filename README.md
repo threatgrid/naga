@@ -1,4 +1,4 @@
-# Naga [![Build Status](https://travis-ci.org/threatgrid/naga.svg?branch=master)](https://travis-ci.org/threatgrid/naga)
+# Naga [![Build Status](https://travis-ci.org/threatgrid/naga.svg?branch=main)](https://travis-ci.org/threatgrid/naga) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 Datalog based rules engine.
 
