@@ -105,7 +105,7 @@ Naga defines a data access API to talk to storage. This is a Clojure protocol or
 called `Storage`, found in `naga.store`. It should be possible to wrap most graph database APIs
 in the `Storage` API.
 
-For the moment, the only configured implementation is an in-memory store.
+For the moment, the only configured implementations are [Asami](https://github.com/threatgrid/asami) and [Datomic](https://docs.datomic.com/on-prem/index.html). Recently, the focus has been on Asami.
 
 ## In Memory Database
 
