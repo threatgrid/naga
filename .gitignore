@@ -10,5 +10,6 @@ pom.xml.asc
 .hgignore
 .hg/
 .eastwood
+test/tmp/*
 example_data/out.json
 deploy.tok
