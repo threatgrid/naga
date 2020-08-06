@@ -1,0 +1,21 @@
+# Change Log
+
+## [Unreleased]
+### Changed
+
+
+## 0.3.0 - 2020-08-06
+### Changed
+- Updated to Asami 1.1.0
+
+
+## 0.2.39 - 2020-06-30
+### Fixed
+- Fixed the way evaluations are considered in rules
+
+## 0.2.37 - 2020-06-18
+### Changed
+- Shifted data management to Zuko
+
+[Unreleased]: https://github.com/threatgrid/asami/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/threatgrid/asami/compare/0.3.0...0.3.0
