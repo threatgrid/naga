@@ -78,13 +78,13 @@
   (query [this output-pattern patterns]
     (projection/project internal/project-args
                         output-pattern
-                        (query/join-patterns graph patterns nil)))
+                        (query/join-patterns graph patterns nil {})))
 
-  (assert-data [_ data]
-    (->AsamiStore before-graph (query/add-to-graph graph data)))
+  (assert-data [_ data]  ;; note, this is a bad TX-id and will need to be modified later
+    (->AsamiStore before-graph (gr/graph-transact graph -1 data nil)))
 
   (retract-data [_ data]
-    (->AsamiStore before-graph (query/delete-from-graph graph data)))
+    (->AsamiStore before-graph (gr/graph-transact graph -1 nil data)))
 
   (assert-schema-opts [this _ _] this)
 
@@ -115,16 +115,14 @@
                                 values (gr/resolve-pattern graph pattern)]
                             (sequence (comp (map first) (map (partial conj part-pattern))) values)))
           is-update? #(update-attributes (nth % 1))
-          addition-bindings (ins-project (query/join-patterns graph patterns nil))
+          addition-bindings (ins-project (query/join-patterns graph patterns nil {}))
           removals (->> addition-bindings
                         (filter is-update?)
                         (map #(vec (take 2 %)))
                         (mapcat lookup-triple))
           additions (if (seq var-updates) (map (partial take 3) addition-bindings) addition-bindings)]
       (->AsamiStore before-graph
-                     (-> graph
-                         (query/delete-from-graph removals)
-                         (query/add-to-graph additions))))))
+                    (gr/graph-transact graph -1 additions removals)))))
 
 (def empty-store (->AsamiStore nil mem/empty-graph))
 
