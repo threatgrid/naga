@@ -36,11 +36,13 @@
            (not (operators (first pattern)))
            (not (some sequential? pattern)))))
 
+(defn simple-vars [pattern] (set (filter vartest? pattern)))
+
 (defn get-vars
   [[f & r :as pattern]]
   (cond
-    (epv-pattern? pattern) (set (ss/vars pattern))
-    (filter-pattern? pattern) (set (filter vartest? f))
+    (epv-pattern? pattern) (simple-vars pattern)
+    (filter-pattern? pattern) (simple-vars f)
     (op-pattern? pattern) (if (operators f)
                             (set (mapcat get-vars r))
                             (throw (ex-info "Unknown operator" {:op f :args r})))
