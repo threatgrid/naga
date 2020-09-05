@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## 0.3.4 - 2020-09-04
+### Fixed
+- Picked up important bugfix from Zuko 0.3.1
+
 ## 0.3.3 - 2020-09-04
 ### Fixed
 - Fixed duplicated functionality between the Storage and NodeAPI protocols
@@ -28,7 +32,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/asami/compare/0.3.3...HEAD
+[Unreleased]: https://github.com/threatgrid/asami/compare/0.3.4...HEAD
+[0.3.4]: https://github.com/threatgrid/asami/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/threatgrid/asami/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/threatgrid/asami/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/threatgrid/asami/compare/0.3.0...0.3.1
