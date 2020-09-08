@@ -57,6 +57,8 @@
 
 (declare ->AsamiStore)
 
+(def ^:const node-name-len (count "node-"))
+
 (defrecord AsamiStore [before-graph graph]
   Storage
   (start-tx [this] (->AsamiStore graph graph))
@@ -67,8 +69,8 @@
     ;; sort responses by the number in the node ID, since these are known to be ordered
     (when-let [previous-graph (or (:data (meta this)) before-graph)]
       (->> (gr/graph-diff graph previous-graph)
-           (filter (fn [s] (seq (gr/resolve-pattern graph [s :naga/entity '?]))))
-           (sort-by #(subs (name %) 5)))))
+           (filter (fn [s] (seq (gr/resolve-pattern graph [s :tg/entity '?]))))
+           (sort-by #(subs (name %) node-name-len)))))
 
   (count-pattern [_ pattern]
     (if-let [count-fn (get-count-fn graph)]

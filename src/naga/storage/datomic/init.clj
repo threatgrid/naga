@@ -7,27 +7,27 @@
 
 (def internal-attributes
   [{:db/id (Peer/tempid :db.part/db)
-    :db/ident :naga/rest
+    :db/ident :tg/rest
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}
    {:db/id (Peer/tempid :db.part/db)
-    :db/ident :naga/original
+    :db/ident :tg/original
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}
    {:db/id (Peer/tempid :db.part/db)
-    :db/ident :naga/json.type
+    :db/ident :tg/json.type
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}
    {:db/id (Peer/tempid :db.part/db)
-    :db/ident :naga/attributes
+    :db/ident :tg/attributes
     :db/valueType :db.type/ref
     :db/cardinality :db.cardinality/many
     :db.install/_attribute :db.part/db}
    {:db/id (Peer/tempid :db.part/db)
-    :db/ident :naga/entity
+    :db/ident :tg/entity
     :db/valueType :db.type/boolean
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}
@@ -38,7 +38,7 @@
 
 (defn value-property-decl
   [domain [vtype ext]]
-  (let [prop (keyword "naga" (str domain ext))
+  (let [prop (keyword "tg" (str domain ext))
         declaration {:db/id (Peer/tempid :db.part/db)
                      :db/ident prop
                      :db/valueType vtype
@@ -79,7 +79,7 @@
 
 
 (def pre-init-data
-  [{:db/id "naga-data"
-    :db/ident :naga/data}
-   [:db/add :db.part/db :db.install/partition "naga-data"]])
+  [{:db/id "tg-data"
+    :db/ident :tg/data}
+   [:db/add :db.part/db :db.install/partition "tg-data"]])
 

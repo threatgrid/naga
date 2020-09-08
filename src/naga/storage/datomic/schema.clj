@@ -23,7 +23,7 @@
              :db/valueType (keyword "db.type" tp)
              :db/cardinality :db.cardinality/one
              :db.install/_attribute :db.part/db}]
-    (if ot (assoc sch :naga/json.type ot) sch)))
+    (if ot (assoc sch :tg/json.type ot) sch)))
 
 (defn- complex-def
   [[nm ps]]
@@ -35,14 +35,14 @@
                                  :db/ident (keyword (str nm "." tp))
                                  :db/valueType (keyword "db.type" tp)
                                  :db/cardinality :db.cardinality/one
-                                 :naga/original nk-id
+                                 :tg/original nk-id
                                  :db.install/_attribute :db.part/db}]
-                        (if ot (assoc sch :naga/json.type ot) sch)))
+                        (if ot (assoc sch :tg/json.type ot) sch)))
                     ps)]
     (cons
      {:db/id nk-id
       :db/ident (keyword nm)
-      :naga/attributes (map :db/id attributes)}
+      :tg/attributes (map :db/id attributes)}
      attributes)))
 
 (defn- attribute-data

@@ -93,7 +93,7 @@
    [:mem/node-3 :p4 :t]])
 
 
-(def data-entities (map (fn [x] [x :naga/entity true]) [:mem/node-1 :mem/node-2 :mem/node-3]))
+(def data-entities (map (fn [x] [x :tg/entity true]) [:mem/node-1 :mem/node-2 :mem/node-3]))
 
 (deftest test-tx
   (let [s1 (assert-data empty-store (concat id-data data-entities))
@@ -108,7 +108,7 @@
              [:p2 :z]
              [:p3 :x]
              [:p4 :y]
-             [:naga/entity true]} r1))
+             [:tg/entity true]} r1))
     (is (= #{[:mem/node-1 :z]
              [:mem/node-2 :x]
              [:d :z]} r2))

@@ -28,8 +28,8 @@
   (node-type? [store p n] (and (keyword? n)
                                (= "test" (namespace n))
                                (= \n (first (name n)))))
-  (data-attribute [store data] :naga/first)
-  (container-attribute [store data] :naga/contains)
+  (data-attribute [store data] :tg/first)
+  (container-attribute [store data] :tg/contains)
   (find-triple [store pattern] data))
 
 (defn new-store [] (->TestStore [0] (atom 0)))

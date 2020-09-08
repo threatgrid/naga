@@ -54,7 +54,7 @@
   "Determines a keyword for a provided type"
   [t prefix]
   (let [suffix (type->suffix t)]
-    (keyword "naga" (str prefix suffix))))
+    (keyword "tg" (str prefix suffix))))
 
 (def kw-from-type (memoize kw-from-type*))
 
@@ -147,7 +147,7 @@
   [db]
   (let [attr-tuples (q '[:find ?onm ?tn ?anm
                          :where
-                         [?a :naga/original ?oid]
+                         [?a :tg/original ?oid]
                          [?a :db/ident ?anm]
                          [?a :db/valueType ?t]
                          [?t :db/ident ?tn]
@@ -174,7 +174,7 @@
   [db ids acc]
   (let [eids (q '[:find [?i ...]
                   :in $ [?i ...]
-                  :where [?i :naga/entity]] db ids)
+                  :where [?i :tg/entity]] db ids)
         eids? (into #{} eids) 
         parented-ids (remove eids? ids)
         pids (q '[:find [?pid ...]
@@ -222,7 +222,7 @@
   (commit-tx [this]
     ;; retrieve all the assertions after the recorded transaction
     (let [new-entities (q [:find '[?e ...] :where '[?e :db/ident _ ?t] [(list '> '?t tx-id)]] db)
-          entity-map (u/mapmap (fn [x] (d/tempid :naga/data)) new-entities)
+          entity-map (u/mapmap (fn [x] (d/tempid :tg/data)) new-entities)
           data (map (fn [[e a v]] [:db/add (entity-map e e) a v])
                     (q [:find '?e '?a '?v
                         :where '[?e ?ax ?v ?t]
@@ -261,7 +261,7 @@
           project-output (if (= vars output-pattern)
                            identity
                            (partial projection/project
-                                    {:new-node #(d/tempid :naga/data)
+                                    {:new-node #(d/tempid :tg/data)
                                      :node-label (partial node/node-label this)
                                      :resolve-pattern (partial query-pattern db attributes)}
                                     output-pattern))
@@ -304,7 +304,7 @@
   
   NodeAPI
   (new-node [_]
-    (d/tempid :naga/data)) ;; this matches the partition in init/pre-init-data
+    (d/tempid :tg/data)) ;; this matches the partition in init/pre-init-data
 
   (node-id [_ n]
     (subs (str (:idx n)) 1))
