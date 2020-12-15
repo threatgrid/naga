@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.6] - 2020-12-15
+### Changed
+- Updated dependencies on Asami, Zuko and core.cache.
+
 ## [0.3.5] - 2020-09-08
 ### Fixed
 - Fixed entity namespaces for the Asami and Datomic adapters
@@ -35,7 +39,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.5...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.6...HEAD
+[0.3.6]: https://github.com/threatgrid/naga/compare/0.3.5...0.3.6
 [0.3.5]: https://github.com/threatgrid/naga/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/threatgrid/naga/compare/0.3.3...0.3.4
 [0.3.3]: https://github.com/threatgrid/naga/compare/0.3.2...0.3.3
