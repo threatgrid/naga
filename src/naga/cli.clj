@@ -12,7 +12,8 @@
             [zuko.entity.reader :as data-reader]
             [zuko.entity.writer :as data-writer]
             [asami.core]
-            [naga.storage.datomic.core])
+            [naga.storage.datomic.core]
+            [naga.storage.asami.core])
   (:import [clojure.lang ExceptionInfo]
            [java.net URI]
            [java.io File]))

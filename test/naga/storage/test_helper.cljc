@@ -32,6 +32,4 @@
   (container-attribute [store data] :tg/contains)
   (find-triple [store pattern] data))
 
-(defn new-store [] (->TestStore [0] (atom 0)))
-
-(def empty-store (new-store))
+(defn create-store [] (->TestStore [0] (atom 0)))

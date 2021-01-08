@@ -134,23 +134,21 @@
           [_ db-after] (asami-storage/transact-data connection additions removals)]
       (->AsamiStore connection before-graph (asami/graph db-after)))))
 
-(def empty-store (->AsamiStore (asami/as-connection mem/empty-graph) nil mem/empty-graph))
-
-(def empty-multi-store (->AsamiStore (asami/as-connection multi/empty-multi-graph) nil multi/empty-multi-graph))
-
 (s/defn create-store :- StorageType
   "Factory function to create a store"
-  [{:keys [uri] :as config}]
-  (if uri
-    (->AsamiStore (asami/as-connection mem/empty-graph uri) nil mem/empty-graph)
-    empty-store))
+  ([] (create-store nil))
+  ([{:keys [uri] :as config}]
+   (if uri
+     (->AsamiStore (asami/as-connection mem/empty-graph uri) nil mem/empty-graph)
+     (->AsamiStore (asami/as-connection mem/empty-graph) nil mem/empty-graph))))
 
 (s/defn create-multi-store :- StorageType
   "Factory function to create a multi-graph-store"
-  [{:keys [uri] :as config}]
-  (if uri
-    (->AsamiStore (asami/as-connection multi/empty-multi-graph uri) nil multi/empty-multi-graph)
-    empty-multi-store))
+  ([] (create-multi-store nil))
+  ([{:keys [uri] :as config}]
+   (if uri
+     (->AsamiStore (asami/as-connection multi/empty-multi-graph uri) nil multi/empty-multi-graph)
+     (->AsamiStore (asami/as-connection multi/empty-multi-graph) nil multi/empty-multi-graph))))
 
 (registry/register-storage! :memory create-store)
 (registry/register-storage! :memory-multi create-multi-store)

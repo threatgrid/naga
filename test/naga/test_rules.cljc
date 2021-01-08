@@ -57,9 +57,9 @@
         r2 (new-rule '[[?a :parent ?b]] [ptn] "stub2" [["stub2" ptn]])
         p1 {:rules (e/initialize-rules {"stub1" r1}) :axioms []}
         p2 {:rules (e/initialize-rules {"stub2" r2}) :axioms []}]
-    (let [[_ name->count] (e/execute (:rules p1) test-helper/empty-store)]
+    (let [[_ name->count] (e/execute (:rules p1) (test-helper/create-store))]
       (is (= 1 (name->count "stub1"))))
-    (let [[_ name->count] (e/execute (:rules p2) test-helper/empty-store)]
+    (let [[_ name->count] (e/execute (:rules p2) (test-helper/create-store))]
       (is (= 4 (name->count "stub2"))))))
 
 (deftest run-family
