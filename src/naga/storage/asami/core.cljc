@@ -151,6 +151,7 @@
      (->AsamiStore (asami/as-connection multi/empty-multi-graph) nil multi/empty-multi-graph))))
 
 (registry/register-storage! :memory create-store)
+(registry/register-storage! :asami create-store)
 (registry/register-storage! :memory-multi create-multi-store)
 
 (s/defn graph->store :- StorageType
