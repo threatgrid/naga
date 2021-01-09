@@ -6,6 +6,7 @@
             [naga.store-registry :as store-registry]
             [naga.storage.test-helper :as test-helper]
             [naga.storage.asami.core :as mem]
+            [asami.core :as asami]
             [zuko.node :as node]
             [schema.test :as st :refer [deftest] :include-macros true]
             [clojure.test :as t :refer [is] :include-macros true]
@@ -76,6 +77,18 @@
         program (r/create-program rules [])
         [store results] (e/run config program)
         unk (store/resolve-pattern store '[?n :uncle ?u])]
+    (is (= 2 (count unk)))
+    (is (= #{[:fred :george] [:barney :george]} (set unk))))
+
+  ;; setup Asami
+  (let [dburi "asami:mem://family"
+        _ (asami/create-database dburi)
+        conn (asami/connect dburi)
+        _ @(asami/transact conn {:tx-triples axioms})
+        ;; run program
+        program (r/create-program rules [])
+        [store results] (e/run conn program)
+        unk (asami/q '[:find ?n ?u :where [?n :uncle ?u]] (asami/db conn))]
     (is (= 2 (count unk)))
     (is (= #{[:fred :george] [:barney :george]} (set unk)))))
 
