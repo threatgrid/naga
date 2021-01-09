@@ -159,9 +159,10 @@
                 (s/one {s/Str s/Num} "Execution stats")
                 (s/one (s/maybe [s/Any]) "Delta IDs")]
   "Runs a program against a given configuration"
-  [config :- {s/Keyword s/Any}
+  [config
    {:keys [rules axioms]} :- Program]
-  (let [storage (store-registry/get-storage-handle config)
+  (let [storage (or (store/as-store config)
+                    (store-registry/get-storage-handle config))
         storage' (store/start-tx storage)
         rules' (initialize-rules rules)
         initialized-storage (store/assert-data storage' axioms)

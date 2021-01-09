@@ -1,11 +1,11 @@
-(ns naga.storage.test_asami
+(ns naga.storage.test-asami
   #?(:clj  (:require [naga.store :refer [assert-data resolve-pattern count-pattern query start-tx commit-tx deltas]]
-                     [naga.storage.asami.core :refer [empty-store]]
+                     [naga.storage.asami.core :refer [create-store]]
                      [clojure.test :as t :refer [testing is run-tests]]
                      [clojure.edn :as edn]
                      [schema.test :as st :refer [deftest]])
      :cljs (:require [naga.store :refer [assert-data resolve-pattern count-pattern query start-tx commit-tx deltas]]
-                     [naga.storage.asami.core :refer [empty-store]]
+                     [naga.storage.asami.core :refer [create-store]]
                      [clojure.test :as t :refer-macros [testing is run-tests]]
                      [schema.test :as st :refer-macros [deftest]]))
   #?(:clj (:import [java.time ZonedDateTime])))
@@ -27,7 +27,7 @@
   (into #{} (resolve-pattern g pattern)))
 
 (deftest test-load
-  (let [s (assert-data empty-store data)
+  (let [s (assert-data (create-store) data)
         r1 (unordered-resolve s '[:a ?a ?b])
         r2 (unordered-resolve s '[?a :p2 ?b])
         r3 (unordered-resolve s '[:a :p1 ?a])
@@ -61,7 +61,7 @@
              [:d :z]} r9))))
 
 (deftest test-count
-  (let [s (assert-data empty-store data)
+  (let [s (assert-data (create-store) data)
         r1 (count-pattern s '[:a ?a ?b])
         r2 (count-pattern s '[?a :p2 ?b])
         r3 (count-pattern s '[:a :p1 ?a])
@@ -96,7 +96,7 @@
 (def data-entities (map (fn [x] [x :tg/entity true]) [:mem/node-1 :mem/node-2 :mem/node-3]))
 
 (deftest test-tx
-  (let [s1 (assert-data empty-store (concat id-data data-entities))
+  (let [s1 (assert-data (create-store) (concat id-data data-entities))
         s2 (start-tx s1)
         s3 (assert-data s2 [[:d :p2 :z] [:mem/node-3 :p4 :z] [:mem/node-1 :p4 :y]])
         s4 (commit-tx s3)
@@ -133,7 +133,7 @@
   (into #{} (query s op pattern)))
 
 (deftest test-join
-  (let [s (assert-data empty-store jdata)
+  (let [s (assert-data (create-store) jdata)
         r1 (unordered-query s '[?a ?b ?d] '[[:a ?a  ?b] [?b ?c  ?d]])
         r2 (unordered-query s '[?a ?b ?d] '[[?a ?b  :x] [:a ?b  ?d]])
         r3 (unordered-query s '[?x ?y]    '[[:a :p1 ?x] [:y :q1 ?y]])
@@ -177,7 +177,7 @@
    [:y :q3 :n]])
 
 (deftest test-multi-join
-  (let [s (assert-data empty-store j2data)
+  (let [s (assert-data (create-store) j2data)
         r1 (unordered-query s '[?p ?v] '[[:a ?a ?b] [?b :px ?d] [?d ?p ?v]])]
     (is (= #{[:pa :t]
              [:pb :u]
@@ -203,7 +203,7 @@
 #?(:clj
    (deftest test-filter
      []
-     (let [s (assert-data empty-store j3data)
+     (let [s (assert-data (create-store) j3data)
            r1 (unordered-query s '[?a] '[[:a ?a ?b] [(= ?b :z)]])
            r2 (unordered-query s '[?a ?b] '[[:a ?a ?b] [?b :px ?d] [(= ?d :c)]])
            r3 (unordered-query s '[?d] '[[:a ?a ?b] [?b :px ?d] [(not= ?d :c)]])
@@ -230,7 +230,7 @@
    [:z :q3 :n]])
 
 (deftest test-fully-qualified-constraint
-  (let [s (assert-data empty-store j4data)
+  (let [s (assert-data (create-store) j4data)
         r1 (unordered-query s '[?o] '[[:a ?p ?o] [?o :px :c]])]
     (is (= #{[:b] [:z] [:x]} r1))))
 
@@ -246,7 +246,7 @@
    (defn load-data [filename]
      (let [data-text (slurp filename)
            data (edn/read-string {:readers {'object read-time}} data-text)]
-       (assert-data empty-store data))))
+       (assert-data (create-store) data))))
 
 #?(:clj
    (deftest test-minus-detailed

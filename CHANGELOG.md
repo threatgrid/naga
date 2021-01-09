@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.3.7] - 2021-01-08
+### Added
+- The `run` operation now accepts Connection objects from Datomic or Asami.
+- Added a flag to avoid calling shutdown upon exiting the CLI
+
+### Changed
+- Updated Asami storage to use Connections, and not internal graphs.
+
 ## [0.3.6] - 2020-12-15
 ### Changed
 - Updated dependencies on Asami, Zuko and core.cache.

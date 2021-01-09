@@ -107,6 +107,44 @@ in the `Storage` API.
 
 For the moment, the only configured implementations are [Asami](https://github.com/threatgrid/asami) and [Datomic](https://docs.datomic.com/on-prem/index.html). Recently, the focus has been on Asami.
 
+### Asami
+The following can be used to access an in-memory database on Asami:
+
+```clojure
+(require '[asami.core :as asami])
+(require '[naga.lang.pabu :refer [read-str]]) ;; namespace for reading rule strings
+(require '[naga.rules :as rules])    ;; namespace for rule definitions and compiling
+(require '[naga.engine :as engine])  ;; the rules engine
+
+  ;; create a database and connect to it
+(def uri "asami:mem://my-db")
+(asami/create-database uri)
+(let [connection (asami/connect uri)]
+
+  ;; add some data
+  ;; deref to wait until the transaction has completed
+  (deref
+    (asami/transact connection
+                    {:tx-data [[:db/add :xerces :parent :brooke]
+                               [:db/add :brooke :parent :damocles]]}))
+
+  ;; load some rules and compile into a program
+  (let [rules (:rules (read-str "ancestor(X, Y) :- parent(X, Y).
+                                 ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y)."))
+        program (rules/create-program rules)]
+    (engine/run connection program)
+
+    ;; look at the data to see who Xerces' ancestors are
+    (println (asami/q '[:find [?ancestor ...] :where [:xerces :ancestor ?ancestor]] (asami/db connection)))))
+```
+
+This prints:
+```
+(:brooke :damocles)
+```
+
+This starts and ends with standard Asami access. Naga is used to parse the rule program, and execute the rules.
+
 ## In Memory Database
 
 Naga is designed to operate against any graph database. The interface for this is the `Storage`
@@ -124,7 +162,7 @@ These are based on the same architecture as the indexes in the
 
 ## License
 
-Copyright © 2016-2020 Cisco Systems
+Copyright © 2016-2021 Cisco Systems
 
 Copyright © 2011-2016 Paula Gearon
 

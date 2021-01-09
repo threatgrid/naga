@@ -202,13 +202,14 @@
 (s/defn create-program :- Program
   "Converts a sequence of rules into a program.
    A program consists of a map of rule names to rules, where the rules have dependencies."
-  [rules :- [Rule]
-   axioms :- [Axiom]]
-  (let [name-bodies (u/mapmap :name :body rules)
-        triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
-        deps (fn [{:keys [head body name]}]
-               (let [body' (regen-rewrite head body)]
-                 (st/new-rule head body' name (mapcat triggers head))))]
-    {:rules (u/mapmap :name identity (map deps rules))
-     :axioms axioms}))
+  ([rules :- [Rule]] (create-program rules []))
+  ([rules :- [Rule]
+    axioms :- (s/maybe [Axiom])]
+   (let [name-bodies (u/mapmap :name :body rules)
+         triggers (fn [head] (mapcat (partial find-matches head) name-bodies))
+         deps (fn [{:keys [head body name]}]
+                (let [body' (regen-rewrite head body)]
+                  (st/new-rule head body' name (mapcat triggers head))))]
+     {:rules (u/mapmap :name identity (map deps rules))
+      :axioms (or axioms [])})))
 
