@@ -37,6 +37,7 @@
     :validate [valid-input? "Input file does not exist."]]
    [nil "--out STRING" "Filename for output json"
     :validate [valid-output? "Output directory does not exist."]]
+   ["-n" "--no-shutdown" "Prevent shutdown hooks from being executed"]
    ["-h" "--halp" "Print help"]])
 
 (defn exit
@@ -150,19 +151,23 @@
     (spit out-file output)))
 
 (defn -main [& args]
-  (try
-    (let [{{:keys [halp json out storage uri init] :as options} :options,
-           arguments :arguments :as opts} (parse-opts args cli-options)
-          storage-config (storage-configuration options)]
+  (let [nosh (volatile! false)]
+    (try
+      (let [{{:keys [halp json out storage uri init no-shutdown] :as options} :options,
+             arguments :arguments :as opts} (parse-opts args cli-options)
+            _ (vreset! nosh no-shutdown)
+            storage-config (storage-configuration options)]
 
-      (when halp (exit 1 (usage opts)))
-      (with-open [in-stream (if-let [filename (first arguments)]
-                              (io/input-stream filename)
-                              *in*)]
-        (if json
-          (json-program in-stream json out storage-config)
-          (logic-program in-stream storage-config))))
-    (catch ExceptionInfo e
-      (binding [*out* *err*]
-        (println (.getMessage e))))
-    (finally (store-registry/shutdown))))
+        (when halp (exit 1 (usage opts)))
+        (with-open [in-stream (if-let [filename (first arguments)]
+                                (io/input-stream filename)
+                                *in*)]
+          (if json
+            (json-program in-stream json out storage-config)
+            (logic-program in-stream storage-config))))
+      (catch ExceptionInfo e
+        (binding [*out* *err*]
+          (println (.getMessage e))))
+      (finally
+        (when-not @nosh
+          (store-registry/shutdown))))))
