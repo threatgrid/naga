@@ -1,6 +1,12 @@
 # Change Log
 
 ## [Unreleased]
+Nothing yet.
+
+## [0.3.8] - 2021-01-11
+### Added
+- The `update-store` operation had been removed due to lack of support in Asami,
+  and the belief that it was no longer used. Added back in, with Asami support in 1.2.10.
 
 ## [0.3.7] - 2021-01-08
 ### Added
@@ -47,7 +53,9 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.6...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.8...HEAD
+[0.3.8]: https://github.com/threatgrid/naga/compare/0.3.7...0.3.8
+[0.3.7]: https://github.com/threatgrid/naga/compare/0.3.6...0.3.7
 [0.3.6]: https://github.com/threatgrid/naga/compare/0.3.5...0.3.6
 [0.3.5]: https://github.com/threatgrid/naga/compare/0.3.4...0.3.5
 [0.3.4]: https://github.com/threatgrid/naga/compare/0.3.3...0.3.4
