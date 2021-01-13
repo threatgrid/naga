@@ -1,11 +1,13 @@
 (ns naga.storage.test-asami
   #?(:clj  (:require [naga.store :refer [assert-data resolve-pattern count-pattern query start-tx commit-tx deltas]]
-                     [naga.storage.asami.core :refer [create-store]]
+                     [naga.storage.asami.core :refer [create-store update-store]]
+                     [asami.graph :as graph]
                      [clojure.test :as t :refer [testing is run-tests]]
                      [clojure.edn :as edn]
                      [schema.test :as st :refer [deftest]])
      :cljs (:require [naga.store :refer [assert-data resolve-pattern count-pattern query start-tx commit-tx deltas]]
-                     [naga.storage.asami.core :refer [create-store]]
+                     [naga.storage.asami.core :refer [create-store update-store]]
+                     [asami.graph :as graph]
                      [clojure.test :as t :refer-macros [testing is run-tests]]
                      [schema.test :as st :refer-macros [deftest]]))
   #?(:clj (:import [java.time ZonedDateTime])))
@@ -36,6 +38,41 @@
         r6 (unordered-resolve s '[:a :p4 ?a])
         r7 (unordered-resolve s '[:c :p4 :t])
         s' (assert-data s [[:d :p2 :z] [:a :p4 :y]])
+        r8 (unordered-resolve s' '[:a ?a ?b])
+        r9 (unordered-resolve s' '[?a :p2 ?b])]
+    (is (= #{[:p1 :x]
+             [:p1 :y]
+             [:p2 :z]
+             [:p3 :x]} r1))
+    (is (= #{[:a :z]
+             [:b :x]} r2))
+    (is (= #{[:x]
+             [:y]} r3))
+    (is (= #{[:a]} r4))
+    (is (= #{[:p1]
+             [:p3]} r5))
+    (is (empty? r6))
+    (is (= #{[]} r7))
+    (is (= #{[:p1 :x]
+             [:p1 :y]
+             [:p2 :z]
+             [:p3 :x]
+             [:p4 :y]} r8))
+    (is (= #{[:a :z]
+             [:b :x]
+             [:d :z]} r9))))
+
+(deftest test-update
+  (let [s (assert-data (create-store) data)
+        r1 (unordered-resolve s '[:a ?a ?b])
+        r2 (unordered-resolve s '[?a :p2 ?b])
+        r3 (unordered-resolve s '[:a :p1 ?a])
+        r4 (unordered-resolve s '[?a :p2 :z])
+        r5 (unordered-resolve s '[:a ?a :x])
+        r6 (unordered-resolve s '[:a :p4 ?a])
+        r7 (unordered-resolve s '[:c :p4 :t])
+        s' (update-store s (fn [g s1 s2] (reduce (partial apply graph/graph-add) g [s1 s2]))
+                         [:d :p2 :z] [:a :p4 :y])
         r8 (unordered-resolve s' '[:a ?a ?b])
         r9 (unordered-resolve s' '[?a :p2 ?b])]
     (is (= #{[:p1 :x]

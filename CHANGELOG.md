@@ -3,6 +3,11 @@
 ## [Unreleased]
 Nothing yet.
 
+## [0.3.9] - 2021-01-12
+### Fixed
+- The `update-store` API was erroneously change in the last release, and also contained a consistency bug.
+  Also added a new test for this function, as it never had one before.
+
 ## [0.3.8] - 2021-01-11
 ### Added
 - The `update-store` operation had been removed due to lack of support in Asami,
@@ -53,7 +58,8 @@ Nothing yet.
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.8...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.9...HEAD
+[0.3.9]: https://github.com/threatgrid/naga/compare/0.3.8...0.3.9
 [0.3.8]: https://github.com/threatgrid/naga/compare/0.3.7...0.3.8
 [0.3.7]: https://github.com/threatgrid/naga/compare/0.3.6...0.3.7
 [0.3.6]: https://github.com/threatgrid/naga/compare/0.3.5...0.3.6

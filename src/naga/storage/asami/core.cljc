@@ -137,8 +137,9 @@
 (defn update-store	
   "Note: This is currently employed by legacy code that is unaware of transaction IDs.
   Consider using the Asami API directly."
-  [{:keys [connection]} f & args]	
-  (apply ->AsamiStore connection (asami/transact connection {:update-fn (fn [g tx] (apply f g args))})))
+  [{:keys [connection before-graph]} f & args]	
+  (let [{:keys [db-after]} @(asami/transact connection {:update-fn (fn [g tx] (apply f g args))})]
+    (->AsamiStore connection before-graph (asami/graph db-after))))
 
 (s/defn create-store :- StorageType
   "Factory function to create a store"
