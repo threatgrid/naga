@@ -71,6 +71,18 @@
   [c]
   (count (:history c)))
 
+(defn data-update
+  "Perform a data update on a graph or graph in a connection, depending on transaction state"
+  [{:keys [connection graph tx-id] :as store} additions removals]
+  (let [new-graph (if tx-id
+                    ;; in a transaction, so update the graph without telling the connection
+                    (gr/graph-transact graph tx-id additions removals)
+                    ;; not in a transaction, so use the connection to do the update
+                    (-> (asami-storage/transact-data connection additions removals)
+                        second
+                        asami/graph))]
+    (assoc store :graph new-graph)))
+
 (defrecord AsamiStore [connection before-graph graph tx-id]
   Storage
   (start-tx [this]
@@ -80,8 +92,9 @@
   (commit-tx [this]
     (let [ctx (next-tx connection)]
       (if (= tx-id ctx)
-        (let [conn (asami-storage/transact-update connection (fn [g t] graph))]
-          (->AsamiStore conn before-graph graph nil))
+        ;; This operation mutates the connection
+        (let [[_ db-after] (asami-storage/transact-update connection (fn [g t] graph))]
+          (->AsamiStore connection before-graph (asami/graph db-after) nil))
         (throw (ex-info "Concurrent modification exception. Rolling back."
                         {:tx-id tx-id :connection-tx ctx})))))
 
@@ -103,22 +116,10 @@
                         (query/join-patterns graph patterns nil {})))
 
   (assert-data [this data]
-    (if tx-id
-      ;; in a transaction, so update the graph without telling the connection
-      (let [new-graph (gr/graph-transact graph tx-id data nil)]
-        (assoc this :graph new-graph))
-      ;; not in a transaction, so use the connection to do the update
-      (let [[_ db-after] (asami-storage/transact-data connection data nil)]
-        (->AsamiStore connection before-graph (asami/graph db-after) nil))))
+    (data-update this data nil))
 
   (retract-data [this data]
-    (if tx-id
-      ;; in a transaction, so update the graph without telling the connection
-      (let [new-graph (gr/graph-transact graph tx-id nil data)]
-        (assoc this :graph new-graph))
-      ;; not in a transaction, so use the connection to do the update
-      (let [[_ db-after] (asami-storage/transact-data connection nil data)]
-        (->AsamiStore connection before-graph (asami/graph db-after) nil))))
+    (data-update this nil data))
 
   (assert-schema-opts [this _ _] this)
 
@@ -134,8 +135,8 @@
                                           (let [short-a (shorten a)]
                                             [(conj pts [e short-a v]) (conj upd short-a)])
                                           [(conj pts p) upd]))
-                                      [[] #{}]
-                                      assertion-patterns)
+           [[] #{}]
+           assertion-patterns)
           var-updates (set (filter symbol? update-attributes))
           ins-project (fn [data]
                         (let [cols (:cols (meta data))]
@@ -154,9 +155,8 @@
                         (filter is-update?)
                         (map #(vec (take 2 %)))
                         (mapcat lookup-triple))
-          additions (if (seq var-updates) (map (partial take 3) addition-bindings) addition-bindings)
-          [_ db-after] (asami-storage/transact-data connection additions removals)]
-      (->AsamiStore connection before-graph (asami/graph db-after) tx-id))))
+          additions (if (seq var-updates) (map (partial take 3) addition-bindings) addition-bindings)]
+      (data-update this additions removals))))
 
 (defn update-store	
   "Note: This is currently employed by legacy code that is unaware of transaction IDs.
