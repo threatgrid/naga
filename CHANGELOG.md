@@ -1,7 +1,8 @@
 # Change Log
 
 ## [Unreleased]
-Nothing yet.
+### Fixed
+- Handling graph updates through transactions more reliably
 
 ## [0.3.9] - 2021-01-12
 ### Fixed
