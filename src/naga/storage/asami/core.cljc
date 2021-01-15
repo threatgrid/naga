@@ -65,12 +65,6 @@
 
 (def ^:const node-name-len (count "node-"))
 
-(defn next-tx
-  "The next transaction id that a connection should use.
-  TODO: Update connections to support this internally."
-  [c]
-  (count (:history c)))
-
 (defn data-update
   "Perform a data update on a graph or graph in a connection, depending on transaction state"
   [{:keys [connection graph tx-id] :as store} additions removals]
@@ -87,10 +81,10 @@
   Storage
   (start-tx [this]
     (let [latest-graph (asami/graph (asami/db connection))]
-      (->AsamiStore connection latest-graph latest-graph (next-tx connection))))
+      (->AsamiStore connection latest-graph latest-graph (asami-storage/next-tx connection))))
 
   (commit-tx [this]
-    (let [ctx (next-tx connection)]
+    (let [ctx (asami-storage/next-tx connection)]
       (if (= tx-id ctx)
         ;; This operation mutates the connection
         (let [[_ db-after] (asami-storage/transact-update connection (fn [g t] graph))]
