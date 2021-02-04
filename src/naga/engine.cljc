@@ -13,6 +13,7 @@
               [naga.store :as store :refer [StorageType]]
               [naga.rules :as r]
               [zuko.util :as u]
+              [zuko.logging :as log :include-macros true]
               [schema.core :as s])
     #?(:clj
        (:import [naga.schema.structs Rule DynamicRule])))
@@ -93,6 +94,7 @@
              :as current-rule} (q/head queue)
 
             remaining-queue (q/pop queue)]
+        (log/debug "processing rule " (:name current-rule))
 
         (if (nil? current-rule)
           ;; finished, build results as rule names mapped to how often
@@ -105,7 +107,8 @@
           (if-let [dirty-patterns (seq (keep extract-dirty-pattern
                                              status))]
             ;; rule needs to be run
-            (let [counted-patterns (keep (partial resolve-count storage status)
+            (let [_ (log/debug "running rule")
+                  counted-patterns (keep (partial resolve-count storage status)
                                          dirty-patterns)
 
                   ;; Using an identity map to avoid bug CLJS-2736
@@ -127,7 +130,8 @@
                 ;;   :else ...)
                 ;; insert data according to the rule
 
-                (let [updated-storage (store/query-insert storage
+                (let [_ (log/debug "Updating storage")
+                      updated-storage (store/query-insert storage
                                                           head
                                                           hinted-patterns)
                       scheduled-queue (schedule-downstream-queue rules

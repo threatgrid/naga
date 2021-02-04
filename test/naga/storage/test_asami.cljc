@@ -72,7 +72,7 @@
         r6 (unordered-resolve s '[:a :p4 ?a])
         r7 (unordered-resolve s '[:c :p4 :t])
         s' (update-store s (fn [g s1 s2] (reduce (partial apply graph/graph-add) g [s1 s2]))
-                         [:d :p2 :z] [:a :p4 :y])
+                         [:d :p2 :z 1] [:a :p4 :y 1])
         r8 (unordered-resolve s' '[:a ?a ?b])
         r9 (unordered-resolve s' '[?a :p2 ?b])]
     (is (= #{[:p1 :x]

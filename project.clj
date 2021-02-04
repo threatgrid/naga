@@ -3,7 +3,7 @@
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.10.2"]
                  [org.clojure/clojurescript "1.10.773"]
                  [prismatic/schema "1.1.12"]
                  [org.clojure/tools.cli "0.3.5"]
@@ -11,7 +11,7 @@
                  [org.clojars.quoll/parsatron "0.0.9"]
                  [cheshire "5.10.0"]
                  [org.clojars.quoll/naga-store "0.5.0"]
-                 [org.clojars.quoll/asami "1.2.12"]
+                 [org.clojars.quoll/asami "1.2.13"]
                  [org.clojars.quoll/qtest "0.1.1"]
                  ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
                  [com.datomic/datomic-free "0.9.5697" :exclusions [com.google.guava/guava]]

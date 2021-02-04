@@ -13,9 +13,9 @@
               [asami.internal :as internal]
               [naga.store :as store :refer [Storage StorageType ConnectionStore]]
               [zuko.projection :as projection]
+              [zuko.logging :as log :include-macros true]
               [naga.store-registry :as registry]
-              #?(:clj  [schema.core :as s]
-                 :cljs [schema.core :as s :include-macros true])
+              [schema.core :as s :include-macros true]
               #?(:clj [clojure.core.cache :as c]))
     #?(:clj
        (:import [asami.memory MemoryConnection])))
@@ -129,8 +129,8 @@
                                           (let [short-a (shorten a)]
                                             [(conj pts [e short-a v]) (conj upd short-a)])
                                           [(conj pts p) upd]))
-           [[] #{}]
-           assertion-patterns)
+                                      [[] #{}] assertion-patterns)
+          _ (log/trace "assertion patterns " assertion-patterns')
           var-updates (set (filter symbol? update-attributes))
           ins-project (fn [data]
                         (let [cols (:cols (meta data))]
@@ -145,11 +145,14 @@
                             (sequence (comp (map first) (map (partial conj part-pattern))) values)))
           is-update? #(update-attributes (nth % 1))
           addition-bindings (ins-project (query/join-patterns graph patterns nil {}))
+          _ (log/trace "addition bindings " addition-bindings)
           removals (->> addition-bindings
                         (filter is-update?)
                         (map #(vec (take 2 %)))
                         (mapcat lookup-triple))
           additions (if (seq var-updates) (map (partial take 3) addition-bindings) addition-bindings)]
+      (log/trace "additions " additions)
+      (log/trace "removals " removals)
       (data-update this additions removals))))
 
 (defn update-store	

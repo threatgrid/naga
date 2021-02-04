@@ -1,6 +1,14 @@
 # Change Log
 
 ## [Unreleased]
+
+## [0.3.10] - 2021-02-03
+### Changed
+- Updated to Asami 1.2.13 and Zuko 0.4.0.
+
+### Added
+- Some debug and trace level logging.
+
 ### Fixed
 - Handling graph updates through transactions more reliably
 
@@ -59,7 +67,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.9...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.10...HEAD
+[0.3.10]: https://github.com/threatgrid/naga/compare/0.3.9...0.3.10
 [0.3.9]: https://github.com/threatgrid/naga/compare/0.3.8...0.3.9
 [0.3.8]: https://github.com/threatgrid/naga/compare/0.3.7...0.3.8
 [0.3.7]: https://github.com/threatgrid/naga/compare/0.3.6...0.3.7
