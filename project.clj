@@ -1,4 +1,4 @@
-(defproject org.clojars.quoll/naga "0.3.10"
+(defproject org.clojars.quoll/naga "0.3.11"
   :description "Forward Chaining Rule Engine"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
@@ -33,5 +33,4 @@
             :optimizations :simple
             :pretty-print true}}}
     :test-commands {
-      "unit" ["node" "target/js/test.js"]}}
-  :main naga.cli)
+      "unit" ["node" "target/js/test.js"]}})

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.11] - 2021-02-16
+### Changed
+- Released jars are no longer pre-compiled with dependencies
+
 ## [0.3.10] - 2021-02-03
 ### Changed
 - Updated to Asami 1.2.13 and Zuko 0.4.0.
@@ -67,7 +71,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.10...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.11...HEAD
+[0.3.11]: https://github.com/threatgrid/naga/compare/0.3.10...0.3.11
 [0.3.10]: https://github.com/threatgrid/naga/compare/0.3.9...0.3.10
 [0.3.9]: https://github.com/threatgrid/naga/compare/0.3.8...0.3.9
 [0.3.8]: https://github.com/threatgrid/naga/compare/0.3.7...0.3.8
