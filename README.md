@@ -112,6 +112,7 @@ The following can be used to access an in-memory database on Asami:
 
 ```clojure
 (require '[asami.core :as asami])
+(require '[naga.storage.asami.core])
 (require '[naga.lang.pabu :refer [read-str]]) ;; namespace for reading rule strings
 (require '[naga.rules :as rules])    ;; namespace for rule definitions and compiling
 (require '[naga.engine :as engine])  ;; the rules engine
