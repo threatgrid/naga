@@ -53,7 +53,7 @@
 
 ;; parser that looks for comments of the form: -- the comment
 (defparser trailing-comment []
-  (let->> [_ (>> (ch \-) (ch \-))
+  (let->> [_ (either (ch \%) (>> (ch \-) (ch \-)))
            _ (many non-newline)
            _ (ch \newline)]
     (always :cmnt)))

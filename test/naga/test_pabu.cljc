@@ -13,7 +13,7 @@
 
 (def program-string
   "-- a test program
--- these are the axioms
+%these are the axioms
 sibling(fred, barney).
 parent(fred, mary).
 sibling(mary, george).
