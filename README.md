@@ -111,7 +111,8 @@ For the moment, the only configured implementations are [Asami](https://github.c
 The following can be used to access an in-memory database on Asami:
 
 ```clojure
-(require '[asami.core :as asami])
+(require '[asami.core :as asami])    ;; loads Asami
+(require '[naga.storage.asami.core]) ;; load the Asami adapter for Naga
 (require '[naga.lang.pabu :refer [read-str]]) ;; namespace for reading rule strings
 (require '[naga.rules :as rules])    ;; namespace for rule definitions and compiling
 (require '[naga.engine :as engine])  ;; the rules engine
