@@ -2,9 +2,17 @@
 
 ## [Unreleased]
 
+## [0.3.12] - 2021-02-18
+### Added
+- ISO Prolog `%` comments, and SQL style `--` comments added to Pabu parser.
+
+### Changed
+- Generated artifact no longer includes ClojureScript.
+- `-main` entry re-introduced, but still without AOT.
+
 ## [0.3.11] - 2021-02-16
 ### Changed
-- Released jars are no longer pre-compiled with dependencies
+- Released jars are no longer pre-compiled with dependencies.
 
 ## [0.3.10] - 2021-02-03
 ### Changed
@@ -71,7 +79,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.11...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.12...HEAD
+[0.3.12]: https://github.com/threatgrid/naga/compare/0.3.11...0.3.12
 [0.3.11]: https://github.com/threatgrid/naga/compare/0.3.10...0.3.11
 [0.3.10]: https://github.com/threatgrid/naga/compare/0.3.9...0.3.10
 [0.3.9]: https://github.com/threatgrid/naga/compare/0.3.8...0.3.9
