@@ -42,6 +42,7 @@
 
 (def non-star (token (complement #{\*})))
 (def non-slash (token (complement #{\/})))
+(def non-newline (token (complement #{\newline})))
 
 ;; parser that looks for comments of the form:  /* the comment */
 (defparser cmnt []
@@ -50,9 +51,20 @@
            _ (ch \/)]
     (always :cmnt)))
 
+;; parser that looks for comments of the form: -- the comment
+(defparser trailing-comment []
+  (let->> [_ (>> (ch \-) (ch \-))
+           _ (many non-newline)
+           _ (ch \newline)]
+    (always :cmnt)))
+
+;; pabu comment of either form
+(def pcomment (either (cmnt) (trailing-comment)))
+
 ;; parsers for various single characters, etc
 (def whitespace-char (token #{\space \newline \tab}))
-(def opt-whitespace (many (either whitespace-char (attempt (cmnt)))))
+(def opt-whitespace (many (either whitespace-char
+                                  (attempt pcomment))))
 (def separator (>> opt-whitespace (ch \,) opt-whitespace))
 (def open-paren (>> (ch \() opt-whitespace))
 (def close-paren (>> opt-whitespace (ch \))))

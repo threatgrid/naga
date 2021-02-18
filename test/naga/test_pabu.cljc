@@ -12,11 +12,14 @@
 (t/use-fixtures :once st/validate-schemas)
 
 (def program-string
-  "sibling(fred, barney).
+  "-- a test program
+-- these are the axioms
+sibling(fred, barney).
 parent(fred, mary).
 sibling(mary, george).
 gender(george, male).
 
+-- followed by the rules
 parent(B, C) :- sibling(A, B), parent(A, C).
 brother(A, B) :- sibling(A, B), gender(B, male).
 uncle(A, C) :- parent(A, B), brother(B, C).
