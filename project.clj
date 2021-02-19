@@ -20,7 +20,7 @@
           :plugins [[lein-kibit "0.1.5"]]}
     :uberjar {
               :dependencies [[cheshire "5.10.0"]
-                             [org.clojure/tools.cli "0.3.5"]
+                             [org.clojure/tools.cli "1.0.194"]
                              [org.postgresql/postgresql "9.3-1102-jdbc41"]
                              [com.datomic/datomic-free "0.9.5697"]]
               :main naga.cli
