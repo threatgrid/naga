@@ -16,7 +16,8 @@
             [naga.storage.asami.core])
   (:import [clojure.lang ExceptionInfo]
            [java.net URI]
-           [java.io File]))
+           [java.io File])
+  (:gen-class))
 
 (def stores (set (map name (keys @store-registry/registered-stores))))
 

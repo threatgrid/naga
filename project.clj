@@ -5,10 +5,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.2"]
                  [prismatic/schema "1.1.12"]
-                 [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "1.0.207"]
                  [org.clojars.quoll/parsatron "0.0.10"]
-                 [cheshire "5.10.0"]
                  [org.clojars.quoll/naga-store "0.5.2"]
                  [org.clojars.quoll/asami "1.2.14"]]
   :plugins [[lein-cljsbuild "1.1.8"]]
@@ -19,7 +17,15 @@
                      ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
                      [com.datomic/datomic-free "0.9.5697" :exclusions [com.google.guava/guava]]
                      [org.postgresql/postgresql "9.3-1102-jdbc41"]]
-      :plugins [[lein-kibit "0.1.5"]]}}
+          :plugins [[lein-kibit "0.1.5"]]}
+    :uberjar {
+              :dependencies [[cheshire "5.10.0"]
+                             [org.clojure/tools.cli "0.3.5"]
+                             [org.postgresql/postgresql "9.3-1102-jdbc41"]
+                             [com.datomic/datomic-free "0.9.5697"]]
+              :main naga.cli
+              :aot [naga.cli]
+    }}
   :cljsbuild {
     :builds {
         :dev {
@@ -36,4 +42,7 @@
             :pretty-print true}}}
     :test-commands {
       "unit" ["node" "target/js/test.js"]}}
+
+  :target-path "target/%s/"
+
   :main ^:skip-aot naga.cli)
