@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.13] - 2021-02-19
+### Changed
+- Picked up the latest Asami with bugfixes.
+
 ## [0.3.12] - 2021-02-18
 ### Added
 - ISO Prolog `%` comments, and SQL style `--` comments added to Pabu parser.
@@ -79,7 +83,8 @@
 ### Changed
 - Shifted data management to Zuko
 
-[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.12...HEAD
+[Unreleased]: https://github.com/threatgrid/naga/compare/0.3.13...HEAD
+[0.3.13]: https://github.com/threatgrid/naga/compare/0.3.12...0.3.13
 [0.3.12]: https://github.com/threatgrid/naga/compare/0.3.11...0.3.12
 [0.3.11]: https://github.com/threatgrid/naga/compare/0.3.10...0.3.11
 [0.3.10]: https://github.com/threatgrid/naga/compare/0.3.9...0.3.10

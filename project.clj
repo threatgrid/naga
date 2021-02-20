@@ -1,4 +1,4 @@
-(defproject org.clojars.quoll/naga "0.3.12"
+(defproject org.clojars.quoll/naga "0.3.13"
   :description "Forward Chaining Rule Engine"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,7 @@
                  [org.clojars.quoll/parsatron "0.0.10"]
                  [cheshire "5.10.0"]
                  [org.clojars.quoll/naga-store "0.5.2"]
-                 [org.clojars.quoll/asami "1.2.14"]]
+                 [org.clojars.quoll/asami "1.2.15"]]
   :plugins [[lein-cljsbuild "1.1.8"]]
   :profiles {
     :dev {
