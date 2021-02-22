@@ -25,6 +25,7 @@ The script can be provided via stdin or in a filename argument.
 The easiest way to run this tool is with [Leiningen](http://leiningen.org).
 
 ```bash
+  cd cli
   lein run example_data/family.lg
 ```
 
