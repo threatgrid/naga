@@ -15,9 +15,10 @@ inferred results.
 
 Naga is a library for executing rules on a graph database.
 
-There is also an [included project called _Naga-CLI_](https://github.com/threatgrid/naga/tree/main/test)
-(in the cli directory). This was written as an example of how to use
-the [Datomic API](#apis). but it can also be run on a Datalog script as a utility.
+There is also an [included project called _Naga-CLI_](https://github.com/threatgrid/naga/tree/main/cli)
+(in the [cli](https://github.com/threatgrid/naga/tree/main/cli) directory).
+This was written as an example of how to use the [Datomic API](#apis),
+but it can also be run on a Datalog script as a utility.
 
 The script can be provided via stdin or in a filename argument.
 
