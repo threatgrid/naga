@@ -11,13 +11,13 @@
                  [org.clojars.quoll/parsatron "0.0.10"]
                  [cheshire "5.10.0"]
                  [org.clojars.quoll/naga-store "0.5.2"]
-                 [org.clojars.quoll/asami "1.2.15"]]
+                 [org.clojars.quoll/asami "1.2.15"]
+                 ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
+                 [com.datomic/datomic-free "0.9.5697"]
+                 [org.postgresql/postgresql "9.3-1102-jdbc41"]]
   :deploy-repositories {"releases" {:url "https://repo.clojars.org" :creds :gpg}}
   :profiles {
-    :dev {
-      :dependencies [ ; [com.datomic/datomic-pro "0.9.5697" :exclusions [com.google.guava/guava] ; uncomment for Datomic Pro
-                     [com.datomic/datomic-free "0.9.5697"]
-                     [org.postgresql/postgresql "9.3-1102-jdbc41"]]
-      :plugins [[lein-kibit "0.1.5"]]}}
+    :uberjar {:aot :all}
+    :dev {:plugins [[lein-kibit "0.1.5"]]}}
   :scm {:dir ".."}
   :main naga.cli)
