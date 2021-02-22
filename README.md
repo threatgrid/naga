@@ -13,10 +13,15 @@ inferred results.
 
 ## Usage
 
-To run Naga on a Datalog script, provide the script via stdin or in a filename argument.
+Naga is a library for executing rules on a graph database.
 
-While Naga is still in development, the easiest way to run it is with the
-[Leiningen](http://leiningen.org) build tool.
+There is also an [included project called _Naga-CLI_](https://github.com/threatgrid/naga/tree/main/test)
+(in the cli directory). This was written as an example of how to use
+the [Datomic API](#apis). but it can also be run on a Datalog script as a utility.
+
+The script can be provided via stdin or in a filename argument.
+
+The easiest way to run this tool is with [Leiningen](http://leiningen.org).
 
 ```bash
   lein run example_data/family.lg

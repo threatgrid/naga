@@ -1,4 +1,4 @@
-(defproject org.clojars.quoll/naga "0.3.13"
+(defproject org.clojars.quoll/naga "0.3.14-SNAPSHOT"
   :description "Forward Chaining Rule Engine"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
@@ -8,10 +8,10 @@
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "1.0.207"]
                  [org.clojars.quoll/parsatron "0.0.10"]
-                 [cheshire "5.10.0"]
                  [org.clojars.quoll/naga-store "0.5.2"]
                  [org.clojars.quoll/asami "1.2.15"]]
   :plugins [[lein-cljsbuild "1.1.8"]]
+  :deploy-repositories {"releases" {:url "https://repo.clojars.org" :creds :gpg}}
   :profiles {
     :dev {
       :dependencies [[org.clojure/clojurescript "1.10.773"]
@@ -35,5 +35,4 @@
             :optimizations :simple
             :pretty-print true}}}
     :test-commands {
-      "unit" ["node" "target/js/test.js"]}}
-  :main ^:skip-aot naga.cli)
+      "unit" ["node" "target/js/test.js"]}})

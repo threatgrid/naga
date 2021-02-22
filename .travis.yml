@@ -6,6 +6,8 @@ install:
 script:
   - lein test
   - lein cljsbuild test
+  - cd cli
+  - lein test
 
 notifications:
   email:
