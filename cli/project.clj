@@ -1,9 +1,9 @@
-(defproject org.clojars.quoll/naga-cli "0.3.14-SNAPSHOT"
+(defproject org.clojars.quoll/naga-cli "0.3.14"
   :description "Forward Chaining Rule Engine CLI"
   :url "http://github.com/threatgrid/naga"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojars.quoll/naga "0.3.13"]
+  :dependencies [[org.clojars.quoll/naga "0.3.14"]
                  [org.clojure/clojure "1.10.2"]
                  [prismatic/schema "1.1.12"]
                  [org.clojure/tools.cli "0.3.5"]
@@ -20,4 +20,4 @@
                      [org.postgresql/postgresql "9.3-1102-jdbc41"]]
       :plugins [[lein-kibit "0.1.5"]]}}
   :scm {:dir ".."}
-  :main ^:skip-aot naga.cli)
+  :main naga.cli)
