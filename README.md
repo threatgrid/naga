@@ -7,8 +7,8 @@ Datalog based rules engine.
 Naga allows users to load data, and define rules to entailed new data. Once rules have been
 executed, the database will be populated with new inferences which can be queried.
 
-Naga can use its internal database, or wrap an external graph database. A command line
-utility to demonstrate Naga will load rules, into memory, run them, and print all the
+Naga can use the [Asami database](https://github.com/threatgrid/asami), or wrap an external graph database.
+A command line utility to demonstrate Naga will load rules, into memory, run them, and print all the
 inferred results.
 
 ## Usage
