@@ -5,7 +5,6 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.2"]
                  [prismatic/schema "1.1.12"]
-                 [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/core.cache "1.0.207"]
                  [org.clojars.quoll/parsatron "0.0.10"]
                  [org.clojars.quoll/naga-store "0.5.2"]
