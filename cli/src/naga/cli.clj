@@ -13,7 +13,8 @@
             [zuko.entity.writer :as data-writer]
             [asami.core]
             [naga.storage.datomic.core]
-            [naga.storage.asami.core])
+            [naga.storage.asami.core]
+            [cheshire.core :as j])
   (:import [clojure.lang ExceptionInfo]
            [java.net URI]
            [java.io File]))
@@ -138,7 +139,10 @@
         {:keys [rules axioms]} (pabu/read-stream in-stream)
 
         basic-store (store/assert-data fresh-store axioms)
-        json-data (data-writer/stream->triples (:graph basic-store) json-file)
+        json-data (with-open [r (io/reader json-file)]
+                    (data-writer/entities->triples
+                      (:graph basic-store)
+                      (j/parse-stream r true)))
         loaded-store (store/assert-data basic-store json-data)
 
         config (assoc store-config :store loaded-store)
@@ -147,7 +151,7 @@
 
         ;; run the program
         [store stats] (e/run config program)
-        output (data-reader/graph->str (:graph store))]
+        output (j/generate-string (data-reader/graph->entities (:graph store) false))]
     (spit out-file output)))
 
 (defn -main [& args]
